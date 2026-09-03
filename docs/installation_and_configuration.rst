@@ -201,6 +201,88 @@ The execution environment is determined by the ``DS_CODER_COSTEER_ENV_TYPE`` var
        DS_CODER_COSTEER_ENV_TYPE=conda
 
 
+Persisted Artifact Security
+===========================
+
+RD-Agent persists Python objects for sessions, logs, caches, summaries, and
+knowledge bases. These objects use a signed serialization envelope. RD-Agent
+verifies the signature before invoking Python pickle or dill deserialization,
+and rejects unsigned or modified artifacts by default.
+
+The signing key is created automatically on first use at
+``~/.rdagent/artifact_signing.key`` with owner-only permissions. Back up this
+file if existing sessions and knowledge bases must remain readable. Losing or
+rotating the key makes artifacts signed by the previous key unavailable.
+
+The following environment variables control artifact verification:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 32 28 70
+
+   * - Environment variable
+     - Default
+     - Description
+   * - ``ARTIFACT_SIGNING_KEY``
+     - empty
+     - Optional signing secret containing at least 32 bytes. Use the same value
+       on trusted RD-Agent processes that share persisted artifacts. Prefer a
+       secret manager instead of committing it to a repository or ``.env``
+       file.
+   * - ``ARTIFACT_SIGNING_KEY_PATH``
+     - ``~/.rdagent/artifact_signing.key``
+     - Path used for the automatically generated local signing key when
+       ``ARTIFACT_SIGNING_KEY`` is not configured.
+   * - ``ALLOW_UNSAFE_LEGACY_PICKLE``
+     - ``false``
+     - Allows unsigned legacy pickle and dill artifacts. Enable temporarily
+       only when importing artifacts whose complete provenance is trusted.
+
+Keep the signing key outside log, cache, upload, workspace, and other shared
+artifact directories. Do not mount it into containers that execute generated
+or otherwise untrusted code. File access to the signing key is equivalent to
+permission to create artifacts trusted by the host process.
+
+Shared filesystems and multiple hosts
+-------------------------------------
+
+The automatically generated key is installation-local. If several trusted
+hosts read and write the same sessions, logs, caches, or knowledge bases,
+configure the same ``ARTIFACT_SIGNING_KEY`` through the deployment secret
+manager on every host. Artifacts written with a different key fail signature
+verification instead of being deserialized.
+
+Legacy artifact migration
+-------------------------
+
+Unsigned artifacts created by an earlier RD-Agent version are rejected by
+default. Legacy cache entries are treated as cache misses and rebuilt without
+executing their contents. For sessions, logs, summaries, and knowledge bases:
+
+#. Verify the artifact source and restrict write access to its directory.
+#. Back up both the artifact and the new signing key.
+#. Temporarily set ``ALLOW_UNSAFE_LEGACY_PICKLE=true`` in an isolated trusted
+   environment.
+#. Load the artifact and let the corresponding workflow save a new snapshot,
+   or export the needed data to a non-executable format.
+#. Disable ``ALLOW_UNSAFE_LEGACY_PICKLE`` immediately after migration.
+
+Never enable legacy loading for downloaded archives, shared directories, or
+paths writable by another user or service. HMAC verification establishes that
+an artifact was written by a holder of the signing key; it does not make an
+arbitrary pickle intrinsically safe.
+
+Container result formats
+------------------------
+
+Results crossing from generated/container code into the host process no longer
+use pickle. Supported values are transported with JSON manifests and typed
+files: Parquet for pandas tables, NPY with ``allow_pickle=False`` for numeric
+arrays, and JSON or text for simple values. Unsupported Python object types are
+rejected rather than deserialized on the host. Qlib tabular results and Kaggle
+validation cache data are stored as Parquet.
+
+
 Custom Time Segment Configuration (Train / Valid / Test)
 =========================================================
 
@@ -443,4 +525,3 @@ However, this feature is not enabled by default for other scripts. We recommend 
           export $(grep -v '^#' .env | xargs)
     
     - If you want to change the default environment variables, you can refer to the above configuration and edith the `.env` file.
-

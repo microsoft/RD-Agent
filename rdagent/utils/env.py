@@ -10,7 +10,6 @@ Tries to create uniform environment for the agent to run;
 import contextlib
 import json
 import os
-import pickle
 import re
 import select
 import shutil
@@ -55,6 +54,9 @@ from tqdm import tqdm
 
 from rdagent.core.conf import ExtendedBaseSettings
 from rdagent.core.experiment import RD_AGENT_SETTINGS
+from rdagent.core.serialization import UntrustedArtifactError
+from rdagent.core.serialization import dump as secure_pickle_dump
+from rdagent.core.serialization import load as secure_pickle_load
 from rdagent.core.utils import cache_with_pickle
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import md5_hash
@@ -494,13 +496,22 @@ class Env(Generic[ASpecificEnvConf]):
             # + json.dumps(data_key)
         )
         if Path(target_folder / f"{key}.pkl").exists() and Path(target_folder / f"{key}.zip").exists():
-            with open(target_folder / f"{key}.pkl", "rb") as f:
-                ret = pickle.load(f)
-            self.unzip_a_file_into_a_folder(str(target_folder / f"{key}.zip"), local_path, cache_files_to_extract)
+            try:
+                with open(target_folder / f"{key}.pkl", "rb") as f:
+                    ret = secure_pickle_load(f)
+            except UntrustedArtifactError:
+                Path(target_folder / f"{key}.pkl").unlink(missing_ok=True)
+                Path(target_folder / f"{key}.zip").unlink(missing_ok=True)
+                ret = self.__run_with_retry(entry, local_path, env, running_extra_volume)
+                with open(target_folder / f"{key}.pkl", "wb") as f:
+                    secure_pickle_dump(ret, f)
+                self.zip_a_folder_into_a_file(local_path, str(target_folder / f"{key}.zip"))
+            else:
+                self.unzip_a_file_into_a_folder(str(target_folder / f"{key}.zip"), local_path, cache_files_to_extract)
         else:
             ret = self.__run_with_retry(entry, local_path, env, running_extra_volume)
             with open(target_folder / f"{key}.pkl", "wb") as f:
-                pickle.dump(ret, f)
+                secure_pickle_dump(ret, f)
             self.zip_a_folder_into_a_file(local_path, str(target_folder / f"{key}.zip"))
         return cast(EnvResult, ret)
 
@@ -546,6 +557,8 @@ class Env(Generic[ASpecificEnvConf]):
         """
         Dump the code into the local path and run the code.
         """
+        from rdagent.utils.artifact_transport import load_result_artifact
+
         random_file_name = f"{uuid.uuid4()}.py" if code_dump_file_py_name is None else f"{code_dump_file_py_name}.py"
         with open(os.path.join(local_path, random_file_name), "w") as f:
             f.write(code)
@@ -554,11 +567,14 @@ class Env(Generic[ASpecificEnvConf]):
         results = []
         os.remove(os.path.join(local_path, random_file_name))
         for name in dump_file_names:
-            if os.path.exists(os.path.join(local_path, f"{name}")):
-                results.append(pickle.load(open(os.path.join(local_path, f"{name}"), "rb")))
-                os.remove(os.path.join(local_path, f"{name}"))
-            else:
+            result_path = Path(local_path) / name
+            if not result_path.exists():
                 return log_output, []
+            results.extend(load_result_artifact(result_path))
+            if result_path.name == "manifest.json" and result_path.parent.name == "rdagent_artifacts":
+                shutil.rmtree(result_path.parent)
+                continue
+            result_path.unlink()
         return log_output, results
 
     def refresh_env(self) -> None:

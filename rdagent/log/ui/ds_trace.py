@@ -1,6 +1,5 @@
 import hashlib
 import json
-import pickle
 import random
 import re
 from collections import defaultdict
@@ -14,6 +13,7 @@ from litellm import get_valid_models
 from streamlit import session_state as state
 
 from rdagent.app.data_science.loop import DataScienceRDLoop
+from rdagent.core.serialization import loads as secure_pickle_loads
 from rdagent.log.storage import FileStorage
 from rdagent.log.ui.conf import UI_SETTING
 from rdagent.log.ui.utils import (
@@ -141,7 +141,7 @@ def load_data(log_path: Path):
     llm_log_p = log_path / "debug_llm.pkl"
     if llm_log_p.exists():
         try:
-            rd = pickle.loads(llm_log_p.read_bytes())
+            rd = secure_pickle_loads(llm_log_p.read_bytes())
         except:
             rd = []
         for d in rd:

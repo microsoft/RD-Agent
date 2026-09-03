@@ -39,9 +39,9 @@ class QlibFBWorkspace(FBWorkspace):
             env=run_env,
         )
 
-        quantitative_backtesting_chart_path = self.workspace_path / "ret.pkl"
+        quantitative_backtesting_chart_path = self.workspace_path / "ret.parquet"
         if quantitative_backtesting_chart_path.exists():
-            ret_df = pd.read_pickle(quantitative_backtesting_chart_path)
+            ret_df = pd.read_parquet(quantitative_backtesting_chart_path)
             logger.log_object(ret_df, tag="Quantitative Backtesting Chart")
         else:
             logger.error("No result file found.")

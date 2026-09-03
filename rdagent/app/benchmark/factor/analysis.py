@@ -1,5 +1,4 @@
 import json
-import pickle
 from pathlib import Path
 
 import fire
@@ -10,6 +9,7 @@ import seaborn as sns
 
 from rdagent.components.benchmark.conf import BenchmarkSettings
 from rdagent.components.benchmark.eval_method import FactorImplementEval
+from rdagent.core.serialization import load as secure_pickle_load
 
 
 class BenchmarkAnalyzer:
@@ -32,7 +32,7 @@ class BenchmarkAnalyzer:
             raise ValueError("Invalid file path")
 
         with file_path.open("rb") as f:
-            res = pickle.load(f)
+            res = secure_pickle_load(f)
 
         return res
 

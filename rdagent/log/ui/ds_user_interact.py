@@ -1,5 +1,4 @@
 import json
-import pickle
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -8,6 +7,8 @@ import streamlit as st
 from streamlit import session_state as state
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
+from rdagent.core.serialization import dump as secure_pickle_dump
+from rdagent.core.serialization import load as secure_pickle_load
 
 st.set_page_config(layout="wide", page_title="RD-Agent_user_interact", page_icon="🎓", initial_sidebar_state="expanded")
 
@@ -116,14 +117,12 @@ def render_main_content():
                     state.selected_session_name = None
 
             if st.button("Extend expiration by 60s"):
-                session_data = pickle.load(
-                    open(DS_RD_SETTING.user_interaction_mid_folder / f"{state.selected_session_name}.pkl", "rb")
-                )
+                session_path = DS_RD_SETTING.user_interaction_mid_folder / f"{state.selected_session_name}.pkl"
+                with session_path.open("rb") as f:
+                    session_data = secure_pickle_load(f)
                 session_data["expired_datetime"] = session_data["expired_datetime"] + timedelta(seconds=60)
-                pickle.dump(
-                    session_data,
-                    open(DS_RD_SETTING.user_interaction_mid_folder / f"{state.selected_session_name}.pkl", "wb"),
-                )
+                with session_path.open("wb") as f:
+                    secure_pickle_dump(session_data, f)
     else:
         st.warning("Please select a session from the sidebar.")
 
@@ -135,7 +134,8 @@ def update_sessions():
     state.sessions = {}
     for session_file in log_folder.glob("*.pkl"):
         try:
-            session_data = pickle.load(open(session_file, "rb"))
+            with session_file.open("rb") as f:
+                session_data = secure_pickle_load(f)
             if session_data["expired_datetime"] > datetime.now():
                 state.sessions[session_file.stem] = session_data
             else:

@@ -4,7 +4,6 @@ Load pkl logs and convert to hierarchical timeline structure
 Simplified version: no EvoLoop (RL doesn't have evolution loops)
 """
 
-import pickle
 import re
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -14,6 +13,7 @@ from typing import Any
 import streamlit as st
 
 from rdagent.app.rl.ui.config import EventType
+from rdagent.core.serialization import load as secure_pickle_load
 from rdagent.log.storage import FileStorage
 
 
@@ -246,7 +246,7 @@ def load_session(log_path: Path) -> Session:
             continue
         try:
             with open(pkl_file, "rb") as f:
-                content = pickle.load(f)
+                content = secure_pickle_load(f)
             timestamp = datetime.strptime(pkl_file.stem, "%Y-%m-%d_%H-%M-%S-%f")
             # 正确解析 tag：Loop_5/running/debug_tpl/2957404/xxx.pkl -> Loop_5.running.debug_tpl
             tag = ".".join(pkl_file.relative_to(log_path).as_posix().replace("/", ".").split(".")[:-3])

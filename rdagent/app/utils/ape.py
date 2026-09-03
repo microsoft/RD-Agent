@@ -2,16 +2,16 @@
 This is the preliminary version of the APE (Automated Prompt Engineering)
 """
 
-import pickle
 from pathlib import Path
 
+from rdagent.core.serialization import load as secure_pickle_load
 from rdagent.log.conf import LOG_SETTINGS
 
 
 def get_llm_qa(file_path):
     data_flt = []
     with open(file_path, "rb") as f:
-        data = pickle.load(f)
+        data = secure_pickle_load(f)
         print(len(data))
         for item in data:
             if "debug_llm" in item["tag"]:
