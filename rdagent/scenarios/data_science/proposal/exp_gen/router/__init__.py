@@ -115,9 +115,8 @@ class ParallelMultiTraceExpGen(ExpGen):
                     and timer.remain_time() < timedelta(hours=DS_RD_SETTING.merge_hours)
                     and len(leaves) >= 2
                 ):
-                    DS_RD_SETTING.coding_fail_reanalyze_threshold = 100000
-                    DS_RD_SETTING.consecutive_errors = 100000
                     exp = self.merge_exp_gen.gen(trace, plan=ds_plan)
+                    exp.set_merge_phase()
                     exp_gen_type = type(self.merge_exp_gen).__name__
                 else:
                     # If there is a sota experiment in the sub-trace and not in merge time, we use default exp_gen
