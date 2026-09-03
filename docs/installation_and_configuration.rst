@@ -32,6 +32,17 @@ Option 1: Unified API base for both models
       OPENAI_API_BASE=<your_unified_api_base>
       OPENAI_API_KEY=<replace_with_your_openai_api_key>
 
+Configuration Example: Tuning Engines Setup
+-------------------------------------------
+
+   .. code-block:: Properties
+
+      # Route chat and embedding calls through the Tuning Engines OpenAI-compatible endpoint.
+      CHAT_MODEL=openai/<your_chat_model_alias>
+      EMBEDDING_MODEL=openai/<your_embedding_model_alias>
+      OPENAI_API_BASE=https://api.tuningengines.com/v1
+      OPENAI_API_KEY=<replace_with_your_tuning_engines_inference_key>
+
 Option 2: Separate API bases for Chat and Embedding models
 ----------------------------------------------------------
 
@@ -443,4 +454,3 @@ However, this feature is not enabled by default for other scripts. We recommend 
           export $(grep -v '^#' .env | xargs)
     
     - If you want to change the default environment variables, you can refer to the above configuration and edith the `.env` file.
-

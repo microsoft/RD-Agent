@@ -201,6 +201,17 @@ More details can be found in the [development setup](https://rdagent.readthedocs
   OPENAI_API_KEY=<replace_with_your_openai_api_key>
   ```
 
+  *Configuration Example: `Tuning Engines` Setup :*
+
+  ```bash
+  cat << EOF  > .env
+  # Route chat and embedding calls through the Tuning Engines OpenAI-compatible endpoint.
+  CHAT_MODEL=openai/<your_chat_model_alias>
+  EMBEDDING_MODEL=openai/<your_embedding_model_alias>
+  OPENAI_API_BASE=https://api.tuningengines.com/v1
+  OPENAI_API_KEY=<replace_with_your_tuning_engines_inference_key>
+  ```
+
   *Configuration Example: `Azure OpenAI` Setup :*
 
   > Before using this configuration, please confirm in advance that your `Azure OpenAI API key` supports `embedded models`.
