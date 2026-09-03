@@ -14,7 +14,7 @@ jobs:
     steps:
       - name: Release please
         id: release_please
-        uses: googleapis/release-please-action@v4
+        uses: googleapis/release-please-action@v5
         with:
           # The current PAT (personal access token) was created on 2024-08-05,
           # since the maximum validity of PAT is 1 year, you need to change the PAT before 2025-08-05.
