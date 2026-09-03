@@ -229,6 +229,9 @@ def get_msgs_until(end_func: Callable[[Message], bool] = lambda _: True):
                         state.hypotheses[state.lround] = msg.content
                     elif "evolving code" in tags:
                         msg.content = [i for i in msg.content if i]
+                        # Also store under the short key so downstream consumers
+                        # that read state.msgs[round]["evolving code"] can find it.
+                        state.msgs[state.lround]["evolving code"].append(msg)
                     elif "evolving feedback" in tags:
                         total_len = len(msg.content)
                         none_num = total_len - len(msg.content)
