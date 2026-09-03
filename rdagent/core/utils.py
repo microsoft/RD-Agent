@@ -56,6 +56,14 @@ class SingletonBaseClass:
 
 
 def parse_json(response: str) -> Any:
+    import re
+
+    # Some LLM providers (e.g. Volcengine) return Python-style booleans
+    # (True/False) instead of JSON-standard (true/false). Normalize them
+    # before parsing to avoid JSONDecodeError.
+    response = re.sub(r"\bTrue\b", "true", response)
+    response = re.sub(r"\bFalse\b", "false", response)
+    response = re.sub(r"\bNone\b", "null", response)
     try:
         return json.loads(response)
     except json.decoder.JSONDecodeError:
