@@ -46,7 +46,7 @@ class ModelMultiProcessEvolvingStrategy(MultiProcessEvolvingStrategy):
         queried_former_failed_knowledge = (
             queried_knowledge.task_to_former_failed_traces[model_information_str]
             if queried_knowledge is not None
-            else []
+            else ([], None)
         )
         queried_former_failed_knowledge = (
             [
