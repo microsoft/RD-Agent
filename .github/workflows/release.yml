@@ -9,16 +9,15 @@ jobs:
   release_and_publish:
     permissions:
       contents: write
-      pull-requests: read
+      issues: write
+      pull-requests: write
     runs-on: ubuntu-latest
     steps:
       - name: Release please
         id: release_please
         uses: googleapis/release-please-action@v5
         with:
-          # The current PAT (personal access token) was created on 2024-08-05,
-          # since the maximum validity of PAT is 1 year, you need to change the PAT before 2025-08-05.
-          token: ${{ secrets.PAT }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           release-type: simple
       - uses: actions/checkout@v5
         if: ${{ steps.release_please.outputs.release_created }}
