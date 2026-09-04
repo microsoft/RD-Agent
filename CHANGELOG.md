@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.9.0](https://github.com/microsoft/RD-Agent/compare/v0.8.0...v0.9.0) (2026-09-04)
+
+
+### Features
+
+* [AutoRL-Bench] Update DeepSearchQA split and translate task instructions to English ([#1368](https://github.com/microsoft/RD-Agent/issues/1368)) ([471eb30](https://github.com/microsoft/RD-Agent/commit/471eb30d1ec03f35631c532c58a52ce75d684037))
+* add a web UI server ([#1345](https://github.com/microsoft/RD-Agent/issues/1345)) ([be47e5b](https://github.com/microsoft/RD-Agent/commit/be47e5bd6cd316254073927dd6c2d047f9593b4f))
+* add LLM-finetune scenario ([#1314](https://github.com/microsoft/RD-Agent/issues/1314)) ([1824e1c](https://github.com/microsoft/RD-Agent/commit/1824e1c35c0e806d489dfed4d706c99a1c3d06ca))
+* **rl:** add AutoRL-Bench framework and benchmark integrations ([#1348](https://github.com/microsoft/RD-Agent/issues/1348)) ([3f24925](https://github.com/microsoft/RD-Agent/commit/3f2492556cb36c43a61d7552e605827b37eaea8c))
+* sync server UI history traces from backend ([#1386](https://github.com/microsoft/RD-Agent/issues/1386)) ([706e907](https://github.com/microsoft/RD-Agent/commit/706e907727d3f0721f6707675722155615294195))
+
+
+### Bug Fixes
+
+* (to main) litellm's Timeout error is not picklable ([#1294](https://github.com/microsoft/RD-Agent/issues/1294)) ([23ca7db](https://github.com/microsoft/RD-Agent/commit/23ca7db2eb324238bfaa338cfcb748cf435ff66a))
+* avoid triggering errors like "RuntimeError: dictionary changed s… ([#1285](https://github.com/microsoft/RD-Agent/issues/1285)) ([277c72a](https://github.com/microsoft/RD-Agent/commit/277c72a12dc08f9d6bc8520ea272a3dda3f4d0f7))
+* **ci:** remove env-print step to avoid leaking sensitive environment variables ([#1299](https://github.com/microsoft/RD-Agent/issues/1299)) ([25aac39](https://github.com/microsoft/RD-Agent/commit/25aac39d71f25a5d26222791827aaf08e58b6bd6))
+* **ci:** upgrade Node.js to 22 for commitlint compatibility ([#1444](https://github.com/microsoft/RD-Agent/issues/1444)) ([1deb2e0](https://github.com/microsoft/RD-Agent/commit/1deb2e070d9db386aaadf625a7ed9f6129e260fd))
+* **collect_info:** parse package names safely from requirements constraints ([#1313](https://github.com/microsoft/RD-Agent/issues/1313)) ([ce8d6a7](https://github.com/microsoft/RD-Agent/commit/ce8d6a75720006d558461a981d71b9b268f5b202))
+* harden AutoRL-Bench RL evaluators ([#1402](https://github.com/microsoft/RD-Agent/issues/1402)) ([0ca1609](https://github.com/microsoft/RD-Agent/commit/0ca16096dd6da76c8da4fcdb4d27e3bf36f82d25))
+* harden execution and archive handling ([#1469](https://github.com/microsoft/RD-Agent/issues/1469)) ([6926315](https://github.com/microsoft/RD-Agent/commit/69263153ed9a8c91652650154472e81ef76a3d62))
+* harden log server web boundaries ([#1468](https://github.com/microsoft/RD-Agent/issues/1468)) ([6cfa296](https://github.com/microsoft/RD-Agent/commit/6cfa296f586e8d0f15070251c7c659f55147c0db))
+* preserve null end_time when rendering dataset segments template ([#1326](https://github.com/microsoft/RD-Agent/issues/1326)) ([26560b3](https://github.com/microsoft/RD-Agent/commit/26560b3d7485f30246af3ddb2d6185fbe05fb4fd))
+* prevent calendar index overflow when signal data ends early ([#1324](https://github.com/microsoft/RD-Agent/issues/1324)) ([f8aeea0](https://github.com/microsoft/RD-Agent/commit/f8aeea0a6927d6366bf9a9a9ad084502fc0d33dc))
+* verify persisted artifacts before deserialization ([#1471](https://github.com/microsoft/RD-Agent/issues/1471)) ([56ad948](https://github.com/microsoft/RD-Agent/commit/56ad948b19660aa4cbc2f8cb8e54c16beb5e596b))
+
 ## [0.8.0](https://github.com/microsoft/RD-Agent/compare/v0.7.0...v0.8.0) (2025-11-03)
 
 
