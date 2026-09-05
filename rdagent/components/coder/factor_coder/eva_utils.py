@@ -228,15 +228,24 @@ class FactorDatetimeDailyEvaluator(FactorEvaluator):
             return "The source dataframe does not have a datetime index. Please check the implementation.", False
 
         try:
-            pd.to_datetime(gen_df.index.get_level_values("datetime"))
+            datetime_values = pd.DatetimeIndex(pd.to_datetime(gen_df.index.get_level_values("datetime")))
         except Exception:
             return (
                 f"The source dataframe has a datetime index but it is not in the correct format (maybe a regular string or other objects). Please check the implementation.\n The head of the output dataframe is: \n{gen_df.head()}",
                 False,
             )
 
-        time_diff = pd.to_datetime(gen_df.index.get_level_values("datetime")).to_series().diff().dropna().unique()
-        if pd.Timedelta(minutes=1) in time_diff:
+        if datetime_values.hasnans:
+            return (
+                "The source dataframe has missing datetime values. Please check the implementation.",
+                False,
+            )
+
+        unique_datetimes = datetime_values.unique()
+        if unique_datetimes.tz is not None:
+            unique_datetimes = unique_datetimes.tz_localize(None)
+        time_diff = unique_datetimes.sort_values().to_series().diff().dropna()
+        if any(diff < pd.Timedelta(1, unit="D") for diff in time_diff):
             return (
                 "The generated dataframe is not daily. The implementation is definitely wrong. Please check the implementation.",
                 False,
