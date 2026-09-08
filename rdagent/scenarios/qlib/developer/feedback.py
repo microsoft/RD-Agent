@@ -9,16 +9,13 @@ from rdagent.core.proposal import Experiment2Feedback, HypothesisFeedback, Trace
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.qlib.experiment.quant_experiment import QlibQuantScenario
+from rdagent.scenarios.qlib.metrics import ARR_KEY, IC_KEY, MDD_KEY
 from rdagent.utils import convert2bool
 from rdagent.utils.agent.tpl import T
 
 DIRNAME = Path(__file__).absolute().resolve().parent
 
-IMPORTANT_METRICS = [
-    "IC",
-    "1day.excess_return_with_cost.annualized_return",
-    "1day.excess_return_with_cost.max_drawdown",
-]
+IMPORTANT_METRICS = [IC_KEY, ARR_KEY, MDD_KEY]
 
 
 def process_results(current_result, sota_result):

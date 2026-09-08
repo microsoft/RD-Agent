@@ -6,6 +6,17 @@ from typing import List, Literal, Tuple
 
 import numpy as np
 
+from rdagent.log import rdagent_logger as logger
+from rdagent.scenarios.qlib.metrics import (
+    ARR_KEY,
+    IC_KEY,
+    ICIR_KEY,
+    IR_KEY,
+    MDD_KEY,
+    RANK_IC_KEY,
+    RANK_ICIR_KEY,
+)
+
 
 @dataclass
 class Metrics:
@@ -33,23 +44,40 @@ class Metrics:
         )
 
 
-def extract_metrics_from_experiment(experiment) -> Metrics:
-    """Extract metrics from experiment feedback"""
-    try:
-        result = experiment.result
-        ic = result.get("IC", 0.0)
-        icir = result.get("ICIR", 0.0)
-        rank_ic = result.get("Rank IC", 0.0)
-        rank_icir = result.get("Rank ICIR", 0.0)
-        arr = result.get("1day.excess_return_with_cost.annualized_return", 0.0)
-        ir = result.get("1day.excess_return_with_cost.information_ratio", 0.0)
-        mdd = result.get("1day.excess_return_with_cost.max_drawdown", 1.0)  # Avoid division by zero
-        sharpe = arr / -mdd if mdd != 0 else 0.0
+def _get_metric(result, key: str, default: float = 0.0) -> float:
+    """Read one metric from ``experiment.result``, warning instead of silently defaulting when it is absent.
 
-        return Metrics(ic=ic, icir=icir, rank_ic=rank_ic, rank_icir=rank_icir, arr=arr, ir=ir, mdd=mdd, sharpe=sharpe)
-    except Exception as e:
-        print(f"Error extracting metrics: {e}")
+    A missing key, a mistyped key and a genuinely zero metric used to be indistinguishable (see #1451); the
+    warning makes the first two visible in the log while keeping the loop alive on a partial Qlib result.
+    """
+    if key in result:
+        return float(result[key])
+    logger.warning(
+        f"Metric {key!r} not found in experiment result, using {default}. Available keys: {list(result.keys())}"
+    )
+    return default
+
+
+def extract_metrics_from_experiment(experiment) -> Metrics:
+    """Extract the bandit's feature vector from ``experiment.result`` (a Series indexed by Qlib metric name)."""
+    result = getattr(experiment, "result", None)
+    if result is None:
+        # Execution failed, so there is nothing to learn from; a zero vector is neutral for the bandit.
+        logger.warning("Experiment has no result, using all-zero metrics for the bandit")
         return Metrics()
+
+    ic = _get_metric(result, IC_KEY)
+    icir = _get_metric(result, ICIR_KEY)
+    rank_ic = _get_metric(result, RANK_IC_KEY)
+    rank_icir = _get_metric(result, RANK_ICIR_KEY)
+    arr = _get_metric(result, ARR_KEY)
+    ir = _get_metric(result, IR_KEY)
+    # Qlib reports max drawdown as a number <= 0. A default of 0.0 (guarded below) keeps both the ratio and the
+    # -mdd vector slot at zero when the key is missing; the previous default of 1.0 flipped the ratio's sign.
+    mdd = _get_metric(result, MDD_KEY)
+    sharpe = arr / -mdd if mdd != 0 else 0.0
+
+    return Metrics(ic=ic, icir=icir, rank_ic=rank_ic, rank_icir=rank_icir, arr=arr, ir=ir, mdd=mdd, sharpe=sharpe)
 
 
 class LinearThompsonTwoArm:
