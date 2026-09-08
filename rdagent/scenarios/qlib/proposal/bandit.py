@@ -27,7 +27,7 @@ class Metrics:
     arr: float = 0.0
     ir: float = 0.0
     mdd: float = 0.0
-    sharpe: float = 0.0
+    calmar: float = 0.0  # annualized return / |max drawdown|; not a Sharpe ratio, it carries no volatility term
 
     def as_vector(self) -> np.ndarray:
         return np.array(
@@ -39,7 +39,7 @@ class Metrics:
                 self.arr,
                 self.ir,
                 -self.mdd,
-                self.sharpe,
+                self.calmar,
             ]
         )
 
@@ -75,9 +75,9 @@ def extract_metrics_from_experiment(experiment) -> Metrics:
     # Qlib reports max drawdown as a number <= 0. A default of 0.0 (guarded below) keeps both the ratio and the
     # -mdd vector slot at zero when the key is missing; the previous default of 1.0 flipped the ratio's sign.
     mdd = _get_metric(result, MDD_KEY)
-    sharpe = arr / -mdd if mdd != 0 else 0.0
+    calmar = arr / -mdd if mdd != 0 else 0.0
 
-    return Metrics(ic=ic, icir=icir, rank_ic=rank_ic, rank_icir=rank_icir, arr=arr, ir=ir, mdd=mdd, sharpe=sharpe)
+    return Metrics(ic=ic, icir=icir, rank_ic=rank_ic, rank_icir=rank_icir, arr=arr, ir=ir, mdd=mdd, calmar=calmar)
 
 
 class LinearThompsonTwoArm:
