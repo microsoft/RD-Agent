@@ -122,6 +122,11 @@ This implementation is {'SUCCESS' if self.final_decision else 'FAIL'}.
         return self.final_decision
 
 
+def _append_return_checking(feedback: CoSTEERSingleFeedback, message: str) -> None:
+    """Append evaluator diagnostics when the model returned no checking text."""
+    feedback.return_checking = (feedback.return_checking or "") + message
+
+
 class CoSTEERSingleFeedbackDeprecated(CoSTEERSingleFeedback):
     """This class is a base class for all code generator feedback to single implementation"""
 

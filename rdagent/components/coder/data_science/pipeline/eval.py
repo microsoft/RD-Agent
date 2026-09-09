@@ -6,13 +6,13 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pandas as pd
-
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.agent.context7 import Agent as DocAgent
 from rdagent.components.coder.CoSTEER import CoSTEERMultiFeedback
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEEREvaluator,
     CoSTEERSingleFeedback,
+    _append_return_checking,
 )
 from rdagent.components.coder.CoSTEER.knowledge_management import (
     CoSTEERQueriedKnowledgeV2,
@@ -333,16 +333,16 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
 
         if score_ret_code != 0 and wfb.final_decision is True:
             wfb.final_decision = False
-            wfb.return_checking += "\n" + score_check_text
+            _append_return_checking(wfb, "\n" + score_check_text)
         if submission_ret_code != 0 and wfb.final_decision is True:
             wfb.final_decision = False
-            wfb.return_checking += "\nSubmission file check failed."
+            _append_return_checking(wfb, "\nSubmission file check failed.")
         if sample_submission_check is False and wfb.final_decision is True:
             wfb.final_decision = False
-            wfb.return_checking += (
-                "\nSample submission file check failed. Code should not open the sample submission file."
+            _append_return_checking(
+                wfb, "\nSample submission file check failed. Code should not open the sample submission file."
             )
         if nb_conversion_ret_code != 0 and wfb.final_decision is True:
             wfb.final_decision = False
-            wfb.return_checking += "\n" + nb_conversion_check_text
+            _append_return_checking(wfb, "\n" + nb_conversion_check_text)
         return wfb
