@@ -22,14 +22,15 @@ class QlibFactorHypothesisGen(FactorHypothesisGen):
                 trace=trace,
             )
             if len(trace.hist) > 0
-            else "No previous hypothesis and feedback available since it's the first round."
+            else str()
+
         )
         last_hypothesis_and_feedback = (
             T("scenarios.qlib.prompts:last_hypothesis_and_feedback").r(
                 experiment=trace.hist[-1][0], feedback=trace.hist[-1][1]
             )
             if len(trace.hist) > 0
-            else "No previous hypothesis and feedback available since it's the first round."
+            else str()
         )
 
         context_dict = {
