@@ -1,0 +1,13 @@
+System: |-
+  Given the trace of previous implementations and corresponding performances, please estimate what the performance is for the new implementation. 
+  Considering all informations from the trace, conduct an overal evaluation for the new implementation. Output a score between 0 and 1. Do not include anything else in your response.
+
+Trace Convert: |-
+  {% for hypothesis, experiment, feedback in trace.hist %}
+  Hypothesis {{ loop.index }}: {{ hypothesis }}
+  Observation on the result with the hypothesis: {{ feedback.observations }}
+  Feedback on the original hypothesis:  {{ feedback.hypothesis_evaluation }}
+  New Feedback for Context (For your reference):  {{ feedback.new_hypothesis }}
+  Reasoning for new hypothesis:  {{ feedback.reason }}
+  Did changing to this hypothesis work? (focus on the change):  {{ feedback.decision }}
+  {% endfor %}
