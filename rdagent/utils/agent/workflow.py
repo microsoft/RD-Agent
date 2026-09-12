@@ -10,7 +10,7 @@ T = TypeVar("T")
 def build_cls_from_json_with_retry(
     cls: Type[T],
     system_prompt: str,
-    user_prompt: str,
+    user_prompt: str | List[str],
     retry_n: int = 5,
     init_kwargs_update_func: Callable[[dict[str, Any]], dict[str, Any]] | None = None,
     **kwargs: dict,
@@ -24,6 +24,7 @@ def build_cls_from_json_with_retry(
         The initial prompt provided to the system for context.
     user_prompt : str
         The prompt given by the user to guide the response generation.
+        If a list is provided, we will create multi-turn conversation.
     retry_n : int
         The number of attempts to retry in case of failure.
     init_kwargs_update_func : Union[Callable[[dict], dict], None]
@@ -41,16 +42,28 @@ def build_cls_from_json_with_retry(
     from rdagent.oai.llm_utils import APIBackend  # avoid circular import
 
     for i in range(retry_n):
-        # currently, it only handle exception caused by initial class
-        resp = APIBackend().build_messages_and_create_chat_completion(
-            user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True, **kwargs  # type: ignore[arg-type]
-        )
-        try:
-            resp_dict = json.loads(resp)
-            if init_kwargs_update_func:
-                resp_dict = init_kwargs_update_func(resp_dict)
-            return cls(**resp_dict)
-        except Exception as e:
-            logger.warning(f"Attempt {i + 1}: The previous attempt didn't work due to: {e}")
-            user_prompt = user_prompt + f"\n\nAttempt {i + 1}: The previous attempt didn't work due to: {e}"
+        if isinstance(user_prompt, str):
+            # currently, it only handle exception caused by initial class
+            resp = APIBackend().build_messages_and_create_chat_completion(
+                user_prompt=user_prompt, system_prompt=system_prompt, json_mode=True, **kwargs  # type: ignore[arg-type]
+            )
+            try:
+                resp_dict = json.loads(resp)
+                if init_kwargs_update_func:
+                    resp_dict = init_kwargs_update_func(resp_dict)
+                return cls(**resp_dict)
+            except Exception as e:
+                logger.warning(f"Attempt {i + 1}: The previous attempt didn't work due to: {e}")
+                user_prompt = user_prompt + f"\n\nAttempt {i + 1}: The previous attempt didn't work due to: {e}"
+
+        else:
+            # Build multi-turn conversation
+            resp_dict = {}
+            session = APIBackend().build_chat_session(
+                session_system_prompt=system_prompt,
+            )
+            for prompt in user_prompt:
+                resp = session.build_chat_completion(user_prompt=prompt, json_mode=True, **kwargs)
+
+            
     raise FormatError("Unable to produce a JSON response that meets the specified requirements.")
