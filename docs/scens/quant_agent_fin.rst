@@ -17,6 +17,8 @@ You can learn more details about **RD-Agent(Q)** through the `paper <https://arx
 
 Before you start, please make sure you have installed RD-Agent and configured the environment for RD-Agent correctly. If you want to know how to install and configure the RD-Agent, please refer to the `documentation <../installation_and_configuration.html>`_.
 
+Also prepare the :ref:`qlib-data-prerequisites` before running ``rdagent fin_quant``.
+
 Then, you can run the framework by running the following command:
 
 - 🐍 Create a Conda Environment
@@ -48,6 +50,85 @@ Then, you can run the framework by running the following command:
     .. code-block:: sh
 
         rdagent fin_quant
+
+
+.. _qlib-data-prerequisites:
+
+Qlib data prerequisites
+~~~~~~~~~~~~~~~~~~~~~~~
+
+The default ``fin_quant``, ``fin_factor``, and ``fin_model`` scenarios use
+**daily Chinese-market data in Qlib's binary format**. Installing RD-Agent does
+not install this dataset. Follow the Linux setup above and prepare data under
+the same host user that will run RD-Agent.
+
+1. Obtain the dataset using Qlib's `Data Preparation guide
+   <https://github.com/microsoft/qlib#data-preparation>`_. Qlib currently notes
+   that its official dataset is temporarily unavailable and links to a
+   community-maintained alternative. Check that guide for the current source
+   and download instructions; do not assume the automatic download will succeed.
+
+2. Populate ``~/.qlib/qlib_data/cn_data`` on the host. For the community
+   ``qlib_bin.tar.gz`` archive layout shown in Qlib's guide, extract the downloaded
+   archive as follows:
+
+   .. code-block:: sh
+
+       mkdir -p "$HOME/.qlib/qlib_data/cn_data"
+       tar -xzf /path/to/qlib_bin.tar.gz \
+           -C "$HOME/.qlib/qlib_data/cn_data" --strip-components=1
+
+   Replace the archive path with your downloaded file. The resulting directory
+   must directly contain ``calendars/``, ``instruments/``, and ``features/``,
+   rather than another nested ``qlib_bin/`` directory. Use daily data with the
+   CSI 300 instrument list and dates covering the selected Qlib YAML template.
+
+3. Check the layout before starting a finance command:
+
+   .. code-block:: sh
+
+       python - "$HOME/.qlib/qlib_data/cn_data" <<'PY'
+       import sys
+       from pathlib import Path
+
+       root = Path(sys.argv[1])
+       for relative in ("calendars/day.txt", "instruments/csi300.txt"):
+           path = root / relative
+           if not path.is_file() or path.stat().st_size == 0:
+               raise SystemExit(f"Missing or empty Qlib data file: {path}")
+       if not any((root / "features").glob("*/*.day.bin")):
+           raise SystemExit(f"No daily Qlib feature files under {root / 'features'}")
+       print(f"Qlib data layout found at {root}")
+       PY
+
+   This checks the expected layout, not data quality or date coverage. Qlib's
+   guide also documents its data-health checks.
+
+With the default ``QlibDockerConf``, the host's ``~/.qlib`` is mounted at
+``/root/.qlib`` inside the container. The template ``provider_uri`` of
+``~/.qlib/qlib_data/cn_data`` therefore refers to that mounted dataset during a
+Docker backtest. Downloading data only into an unrelated container does not
+populate the host path. If you customize the mount or ``provider_uri``, ensure
+they still refer to the same dataset.
+
+``QTDockerEnv.prepare()`` attempts to download data only when ``cn_data`` does
+not exist. An empty or partially downloaded directory can therefore cause
+"Data already exists. Download skipped." without usable data. Inspect and
+repair that dataset using the steps above instead of repeatedly restarting the
+agent.
+
+Factor preparation derives ``daily_pv.h5`` from the Qlib dataset in each of
+these default directories, relative to the RD-Agent working directory:
+
+* ``git_ignore_folder/factor_implementation_source_data`` (full data)
+* ``git_ignore_folder/factor_implementation_source_data_debug`` (debug data)
+
+These are derived factor inputs, not replacements for the binary Qlib dataset.
+Their locations can be set with ``FACTOR_CoSTEER_data_folder`` and
+``FACTOR_CoSTEER_data_folder_debug``. If ``daily_pv_all.h5 is not generated`` or
+``daily_pv_debug.h5 is not generated`` appears, inspect the preceding container
+log and verify the source dataset and mount first. Merely creating the derived
+directories does not generate their contents.
 
 
 🛠️ Usage of modules
