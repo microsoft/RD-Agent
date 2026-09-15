@@ -19,13 +19,13 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           release-type: simple
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         if: ${{ steps.release_please.outputs.release_created }}
         with:
           fetch-depth: 0
       - name: Set up Python
         if: ${{ steps.release_please.outputs.release_created }}
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           cache: pip
           python-version: '3.10'
