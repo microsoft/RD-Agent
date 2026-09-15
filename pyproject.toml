@@ -7,7 +7,7 @@ requires = [
 
 [project]
 authors = [
-  {email = "xuyang1@microsoft.com", name = "MSRA-MIIC"},
+  { email = "xuyang1@microsoft.com", name = "MSRA-MIIC" },
 ]
 classifiers = [
   "Development Status :: 3 - Alpha",
@@ -113,14 +113,14 @@ select = ["ALL"]
 packages = ["rdagent"]
 
 [tool.setuptools.dynamic]
-dependencies = {file = ["requirements.txt"]}
+dependencies = { file = ["requirements.txt"] }
 
 [tool.setuptools.dynamic.optional-dependencies]
-docs = {file = ["requirements/docs.txt"]}
-lint = {file = ["requirements/lint.txt"]}
-package = {file = ["requirements/package.txt"]}
-test = {file = ["requirements/test.txt"]}
-torch = {file = ["requirements/torch.txt"]} # some agent algorithms need torch.  pip install rdagent[torch]
+docs = { file = ["requirements/docs.txt"] }
+lint = { file = ["requirements/lint.txt"] }
+package = { file = ["requirements/package.txt"] }
+test = { file = ["requirements/test.txt"] }
+torch = { file = ["requirements/torch.txt"] } # some agent algorithms need torch.  pip install rdagent[torch]
 
 [tool.setuptools_scm]
 local_scheme = "no-local-version"
