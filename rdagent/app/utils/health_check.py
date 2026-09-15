@@ -3,9 +3,6 @@ import socket
 
 import docker
 import fire
-import litellm
-from litellm import completion, embedding
-from litellm.utils import ModelResponse
 
 from rdagent.log import rdagent_logger as logger
 from rdagent.utils.env import cleanup_container
@@ -51,24 +48,11 @@ def check_and_list_free_ports(start_port=19899, max_ports=10) -> None:
 def test_chat(chat_model, chat_api_key, chat_api_base):
     logger.info(f"🧪 Testing chat model: {chat_model}")
     try:
-        if chat_api_base is None:
-            response: ModelResponse = completion(
-                model=chat_model,
-                api_key=chat_api_key,
-                messages=[
-                    {"role": "user", "content": "Hello!"},
-                ],
-            )
-        else:
-            response: ModelResponse = completion(
-                model=chat_model,
-                api_key=chat_api_key,
-                api_base=chat_api_base,
-                messages=[
-                    {"role": "user", "content": "Hello!"},
-                ],
-            )
-        logger.info(f"✅ Chat test passed.")
+        from rdagent.oai.backend.litellm import LiteLLMAPIBackend
+
+        backend = LiteLLMAPIBackend()
+        backend.build_messages_and_create_chat_completion(user_prompt="Hello!")
+        logger.info("✅ Chat test passed.")
         return True
     except Exception as e:
         logger.error(f"❌ Chat test failed: {e}")
@@ -78,12 +62,10 @@ def test_chat(chat_model, chat_api_key, chat_api_base):
 def test_embedding(embedding_model, embedding_api_key, embedding_api_base):
     logger.info(f"🧪 Testing embedding model: {embedding_model}")
     try:
-        response = embedding(
-            model=embedding_model,
-            api_key=embedding_api_key,
-            api_base=embedding_api_base,
-            input="Hello world!",
-        )
+        from rdagent.oai.backend.litellm import LiteLLMAPIBackend
+
+        backend = LiteLLMAPIBackend()
+        backend.create_embedding(input_content="Hello world!")
         logger.info("✅ Embedding test passed.")
         return True
     except Exception as e:
@@ -117,6 +99,13 @@ def env_check():
         embedding_model = os.getenv("EMBEDDING_MODEL")
         embedding_api_key = chat_api_key
         embedding_api_base = chat_api_base
+    elif "CHAT_OPENAI_COMPATIBLE_API_KEY" in os.environ or "EMBEDDING_OPENAI_COMPATIBLE_API_KEY" in os.environ:
+        chat_api_key = os.getenv("CHAT_OPENAI_COMPATIBLE_API_KEY")
+        chat_api_base = os.getenv("CHAT_OPENAI_COMPATIBLE_API_BASE")
+        chat_model = os.getenv("CHAT_MODEL")
+        embedding_model = os.getenv("EMBEDDING_MODEL")
+        embedding_api_key = os.getenv("EMBEDDING_OPENAI_COMPATIBLE_API_KEY")
+        embedding_api_base = os.getenv("EMBEDDING_OPENAI_COMPATIBLE_API_BASE")
     else:
         logger.error("No valid configuration was found, please check your .env file.")
 
