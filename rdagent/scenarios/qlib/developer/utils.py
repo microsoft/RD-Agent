@@ -1,7 +1,6 @@
-from typing import List
+import re
 
 import pandas as pd
-
 from rdagent.components.coder.CoSTEER.evaluators import CoSTEERMultiFeedback
 from rdagent.components.coder.factor_coder.factor import FactorFBWorkspace, FactorTask
 from rdagent.core.conf import RD_AGENT_SETTINGS
@@ -9,6 +8,33 @@ from rdagent.core.exception import FactorEmptyError
 from rdagent.core.utils import multiprocessing_wrapper
 from rdagent.log import rdagent_logger as logger
 from rdagent.scenarios.qlib.experiment.factor_experiment import QlibFactorExperiment
+
+
+def _fix_groupby_rolling_pattern(code: str) -> str:
+    """
+    Fix pandas groupby().rolling() patterns that cause index duplication.
+
+    Converts: .groupby(level='instrument').rolling(window=N).mean()
+    To:       .groupby(level='instrument').transform(lambda x: x.rolling(window=N).mean())
+    """
+    # Pattern to match: groupby(...).rolling(...).{mean|sum|std|min|max}()
+    pattern = (
+        r"\.groupby\s*\(\s*level\s*=\s*['\"]instrument['\"]\s*\)"
+        r"\s*\.\s*rolling\s*\(\s*window\s*=\s*(\d+)\s*\)"
+        r"\s*\.\s*(mean|sum|std|min|max)\s*\(\s*\)"
+    )
+
+    def replace_func(match: re.Match[str]) -> str:
+        window = match.group(1)
+        operation = match.group(2)
+        return f".groupby(level='instrument').transform(lambda x: x.rolling(window={window}).{operation}())"
+
+    fixed_code = re.sub(pattern, replace_func, code)
+
+    if fixed_code != code:
+        logger.info("Auto-fixed groupby().rolling() pattern to use transform()")
+
+    return fixed_code
 
 
 def _build_base_feature_workspaces(exp: QlibFactorExperiment) -> list[FactorFBWorkspace]:
@@ -19,9 +45,10 @@ def _build_base_feature_workspaces(exp: QlibFactorExperiment) -> list[FactorFBWo
                 factor_name=file_name,
                 factor_description=f"Base feature from {file_name}",
                 factor_formulation="",
-            )
+            ),
         )
-        workspace.inject_files(**{"factor.py": code})
+        fixed_code = _fix_groupby_rolling_pattern(code)
+        workspace.inject_files(**{"factor.py": fixed_code})
         workspaces.append(workspace)
     return workspaces
 
@@ -54,13 +81,13 @@ def _resolve_index_level_values(df: pd.DataFrame, level_name: str) -> pd.Index |
     if all(first_values.equals(values) for values in candidate_values[1:]):
         logger.warning(
             f"Factor dataframe has duplicated '{level_name}' index levels at positions {matching_levels}; "
-            "their values are identical, so the first one is used."
+            "their values are identical, so the first one is used.",
         )
         return first_values
 
     logger.warning(
         f"Skip factor dataframe because index has ambiguous duplicated '{level_name}' levels at positions "
-        f"{matching_levels}. index names={list(df.index.names)}"
+        f"{matching_levels}. index names={list(df.index.names)}",
     )
     return None
 
@@ -128,7 +155,7 @@ def _process_message_and_df(
     return error_message
 
 
-def process_factor_data(exp_or_list: List[QlibFactorExperiment] | QlibFactorExperiment) -> pd.DataFrame:
+def process_factor_data(exp_or_list: list[QlibFactorExperiment] | QlibFactorExperiment) -> pd.DataFrame:
     """
     Process and combine factor data from experiment implementations.
 
@@ -165,13 +192,13 @@ def process_factor_data(exp_or_list: List[QlibFactorExperiment] | QlibFactorExpe
         except Exception as concat_error:
             concat_index_info = " | ".join([f"df#{i}: {_format_index_info(df)}" for i, df in enumerate(factor_dfs)])
             logger.warning(
-                f"Failed to concat factor data due to index misalignment. concat_error={concat_error}; collected_index_info={concat_index_info}"
+                f"Failed to concat factor data due to index misalignment. concat_error={concat_error}; collected_index_info={concat_index_info}",
             )
             raise FactorEmptyError(
                 "Failed to concat factor data due to index misalignment or incompatible index structure. "
-                f"concat_error={concat_error}; collected_index_info={concat_index_info}; details={error_message}"
+                f"concat_error={concat_error}; collected_index_info={concat_index_info}; details={error_message}",
             ) from concat_error
     else:
         raise FactorEmptyError(
-            f"No valid factor data found to merge (in process_factor_data) because of {error_message}."
+            f"No valid factor data found to merge (in process_factor_data) because of {error_message}.",
         )

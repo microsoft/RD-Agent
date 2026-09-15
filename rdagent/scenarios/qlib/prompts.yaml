@@ -93,10 +93,11 @@ model_hypothesis_specification: |-
   8. Use standard libraries for baseline models, but also explore custom architecture designs to investigate novel structures. After sufficient trials with traditional models, aim for innovation comparable to top-tier AI conferences (NeurIPS, ICLR, ICML, SIGKDD, etc.) in time series modeling.
 
 factor_hypothesis_specification: |-
-  1. **1-5 Factors per Generation:**
-    - Ensure each generation produces 1-5 factors.
-    - Balance simplicity and complexity to build a robust factor library.
-    - Make full use of the financial data provided to you instead of focusing solely on a specific field.
+  1. **Quality Over Quantity (1-3 Factors per Generation):**
+    - Generate 1-3 HIGH-QUALITY factors, not 5 random ones.
+    - Historical validation: 29 quality factors beat 158 quantity factors.
+    - Each factor must have clear economic intuition and be distinct from baseline.
+    - Justify why each factor is expected to improve performance.
   2. **Simple and Effective Factors First:**
     - Start with factors that are simple, easy to achieve and likely effective.
     - Concisely explain why these factors are expected to work.
@@ -110,6 +111,36 @@ factor_hypothesis_specification: |-
   5. Note
     - Highlight that factors surpassing SOTA are included in the library to avoid re-implementation.
     - No matter how many factors you plan to generate, only reply with one set of hypothesis and reason. The hypothesis can include the proposal of multiple factors at the same time.
+
+baseline_context: |-
+  **Current Baseline (29 Factors):**
+  
+  **ALPHA20 Covers (20 built-in factors):**
+  - Correlation: CORR5, CORR10, CORR20, CORR60 (price-volume correlation)
+  - Correlation: CORD5, CORD10, CORD60 (return-volume correlation)
+  - Residuals: RESI5, RESI10 (regression residuals)
+  - Volatility: STD5, WVMA5, WVMA60, VSTD5 (price/volume volatility)
+  - Momentum: ROC60 (price momentum)
+  - Trend Strength: RSQR5, RSQR10, RSQR20, RSQR60 (R-squared)
+  - Price Patterns: KLEN, KLOW (candlestick patterns)
+  
+  **Custom 9 Factors (from Selected Baseline):**
+  - Net_Volume_Flow_20d: 20-day signed volume flow ratio (volume direction)
+  - Return_Kurtosis_20D: 20-day return distribution kurtosis (tail risk)
+  - Return_Skewness_20D: 20-day return distribution skewness (asymmetry)
+  - Return_ZScore_20D: 20-day return normalization (standardized returns)
+  - Return_Sign_Autocorrelation_20D: 20-day sign persistence (momentum quality)
+  - Risk_Adjusted_Momentum_20D: 20-day momentum/volatility ratio (risk-adjusted)
+  - Volatility_20D: 20-day volatility (price variability)
+  - Volume_Momentum_20D: 20-day volume momentum (volume trends)
+  - Volume_ZScore_20D: 20-day volume normalization (standardized volume)
+  
+  **Direction Guidance:**
+  - ✅ UNDEREXPLORED: liquidity risk, order flow imbalances, sentiment proxies, tail risk measures
+  - ⚠️ PARTIALLY COVERED: risk-adjusted returns, volume-price correlation, distribution moments
+  - ❌ SATURATED: simple moving averages, basic momentum, raw volatility
+  
+  **IMPORTANT: Avoid duplicating these directions. Focus on NEW dimensions that complement the baseline.**
 
 factor_experiment_output_format: |-
   The output should follow JSON format. The schema is as follows:
