@@ -45,7 +45,9 @@ class QlibFBWorkspace(FBWorkspace):
             logger.log_object(ret_df, tag="Quantitative Backtesting Chart")
         else:
             logger.error("No result file found.")
-            return None, execute_qlib_log
+            # read_exp_res.py's own log usually carries the reason the result file is
+            # missing (e.g. a missing artifact); keep it so callers can surface it.
+            return None, f"{execute_qlib_log}\n{execute_log}"
 
         qlib_res_path = self.workspace_path / "qlib_res.csv"
         if qlib_res_path.exists():
@@ -56,4 +58,4 @@ class QlibFBWorkspace(FBWorkspace):
             return pd.read_csv(qlib_res_path, index_col=0).iloc[:, 0], execute_qlib_log
         else:
             logger.error(f"File {qlib_res_path} does not exist.")
-            return None, execute_qlib_log
+            return None, f"{execute_qlib_log}\n{execute_log}"
