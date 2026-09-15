@@ -31,14 +31,15 @@ class FactorCoSTEERSettings(CoSTEERSettings):
 
 def get_factor_env(
     conf_type: Optional[str] = None,
-    extra_volumes: dict = {},
+    extra_volumes: Optional[dict] = None,
     running_timeout_period: int = 600,
     enable_cache: Optional[bool] = None,
 ) -> Env:
     conf = FactorCoSTEERSettings()
     if hasattr(conf, "python_bin"):
         env = LocalEnv(conf=(CondaConf(conda_env_name=os.environ.get("CONDA_DEFAULT_ENV"))))
-    env.conf.extra_volumes = extra_volumes.copy()
+    if extra_volumes is not None:
+        env.conf.extra_volumes = extra_volumes.copy()
     env.conf.running_timeout_period = running_timeout_period
     if enable_cache is not None:
         env.conf.enable_cache = enable_cache
