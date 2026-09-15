@@ -2,7 +2,7 @@
 black
 isort
 mypy
-ruff==0.15.12
+ruff==0.16.7
 toml-sort
 types-PyYAML
 types-psutil
