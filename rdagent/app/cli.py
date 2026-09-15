@@ -62,13 +62,13 @@ def ui(port=19899, log_dir="", debug: bool = False, data_science: bool = False):
         subprocess.run(cmds)
 
 
-def server_ui(port=19899):
+def server_ui(port: int = 19899, host: str = "127.0.0.1") -> None:
     """
     start the Flask log server in real time
     """
     from rdagent.log.server.app import main as log_server_main
 
-    log_server_main(port=port)
+    log_server_main(port=port, host=host)
 
 
 def ds_user_interact(port=19900):

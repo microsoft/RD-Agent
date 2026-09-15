@@ -1,9 +1,11 @@
 import json
-import pickle
 import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Generator, Literal
+
+from rdagent.core.serialization import dump as secure_pickle_dump
+from rdagent.core.serialization import load as secure_pickle_load
 
 from .base import Message, Storage
 from .utils import gen_datetime
@@ -62,7 +64,7 @@ class FileStorage(Storage):
         elif save_type == "pkl":
             path = path.with_suffix(".pkl")
             with path.open("wb") as f:
-                pickle.dump(obj, f)
+                secure_pickle_dump(obj, f)
             return path
         elif save_type == "text":
             obj = str(obj)
@@ -92,7 +94,7 @@ class FileStorage(Storage):
             pid = file.parent.name
 
             with file.open("rb") as f:
-                content = pickle.load(f)
+                content = secure_pickle_load(f)
 
             timestamp = datetime.strptime(file.stem, "%Y-%m-%d_%H-%M-%S-%f").replace(tzinfo=timezone.utc)
 

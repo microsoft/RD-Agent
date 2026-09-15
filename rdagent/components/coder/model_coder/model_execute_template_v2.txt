@@ -1,5 +1,4 @@
 import os
-import pickle
 
 import numpy as np
 import pandas as pd
@@ -20,5 +19,6 @@ if isinstance(execution_model_output, torch.Tensor):
 
 execution_feedback_str = f"Execution successful, output numpy ndarray shape: {execution_model_output.shape}"
 
-pickle.dump(execution_model_output, open("execution_model_output.pkl", "wb"))
-pickle.dump(execution_feedback_str, open("execution_feedback_str.pkl", "wb"))
+np.save("execution_model_output.npy", execution_model_output, allow_pickle=False)
+with open("execution_feedback_str.txt", "w") as f:
+    f.write(execution_feedback_str)

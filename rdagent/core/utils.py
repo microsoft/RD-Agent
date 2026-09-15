@@ -14,6 +14,9 @@ from filelock import FileLock
 from fuzzywuzzy import fuzz  # type: ignore[import-untyped]
 
 from rdagent.core.conf import RD_AGENT_SETTINGS
+from rdagent.core.serialization import UntrustedArtifactError
+from rdagent.core.serialization import dump as secure_pickle_dump
+from rdagent.core.serialization import load as secure_pickle_load
 from rdagent.oai.llm_conf import LLM_SETTINGS
 
 
@@ -190,9 +193,15 @@ def cache_with_pickle(hash_func: Callable, post_process_func: Callable | None = 
             lock_file = target_folder / f"{hash_key}.lock"
 
             if cache_file.exists():
-                with cache_file.open("rb") as f:
-                    cached_res = pickle.load(f)
-                return post_process_func(*args, cached_res=cached_res, **kwargs) if post_process_func else cached_res
+                try:
+                    with cache_file.open("rb") as f:
+                        cached_res = secure_pickle_load(f)
+                except UntrustedArtifactError:
+                    cache_file.unlink(missing_ok=True)
+                else:
+                    return (
+                        post_process_func(*args, cached_res=cached_res, **kwargs) if post_process_func else cached_res
+                    )
 
             if RD_AGENT_SETTINGS.use_file_lock:
                 with FileLock(lock_file):
@@ -201,7 +210,7 @@ def cache_with_pickle(hash_func: Callable, post_process_func: Callable | None = 
                 result = func(*args, **kwargs)
 
             with cache_file.open("wb") as f:
-                pickle.dump(result, f)
+                secure_pickle_dump(result, f)
 
             return result
 

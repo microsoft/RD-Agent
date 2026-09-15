@@ -1,4 +1,3 @@
-import pickle
 import traceback
 from collections import defaultdict
 from pathlib import Path
@@ -8,6 +7,8 @@ import pandas as pd
 
 from rdagent.core.experiment import FBWorkspace
 from rdagent.core.proposal import ExperimentFeedback
+from rdagent.core.serialization import dump as secure_pickle_dump
+from rdagent.core.serialization import load as secure_pickle_load
 from rdagent.log.storage import FileStorage
 from rdagent.log.utils import extract_json, extract_loopid_func_name, is_valid_session
 from rdagent.log.utils.folder import get_first_session_file_after_duration
@@ -55,7 +56,7 @@ def _get_loop_and_fn_after_hours(log_folder: Path, hours: int):
     stop_session_fp = get_first_session_file_after_duration(log_folder, f"{hours}h")
 
     with stop_session_fp.open("rb") as f:
-        session_obj: LoopBase = pickle.load(f)
+        session_obj: LoopBase = secure_pickle_load(f)
 
     loop_trace = session_obj.loop_trace
     stop_li = max(loop_trace.keys())
@@ -218,7 +219,8 @@ def summarize_folder(log_folder: Path, hours: int | None = None) -> None:
     if save_p.exists():
         save_p.unlink()
         print(f"Old {save_name} removed.")
-    pd.to_pickle(stat, save_p)
+    with save_p.open("wb") as f:
+        secure_pickle_dump(stat, f)
 
 
 # {

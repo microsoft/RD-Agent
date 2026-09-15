@@ -18,6 +18,18 @@ class UIBasePropSetting(ExtendedBaseSettings):
 
     trace_folder: str = "./git_ignore_folder/traces"
 
+    upload_folder: str = "./git_ignore_folder/uploads"
+
+    server_host: str = "127.0.0.1"
+
+    server_auth_token: str = ""
+
+    cors_allowed_origins: list[str] = []
+
+    max_upload_mb: int = 20
+
+    load_legacy_pickle_traces: bool = False
+
     enable_cache: bool = True
 
 

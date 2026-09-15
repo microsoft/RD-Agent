@@ -1,6 +1,5 @@
 import hashlib
 import json
-import pickle
 import random
 import re
 from collections import defaultdict
@@ -14,6 +13,7 @@ from litellm import get_valid_models
 from streamlit import session_state as state
 
 from rdagent.app.data_science.loop import DataScienceRDLoop
+from rdagent.core.serialization import loads as secure_pickle_loads
 from rdagent.log.storage import FileStorage
 from rdagent.log.ui.conf import UI_SETTING
 from rdagent.log.ui.utils import (
@@ -141,7 +141,7 @@ def load_data(log_path: Path):
     llm_log_p = log_path / "debug_llm.pkl"
     if llm_log_p.exists():
         try:
-            rd = pickle.loads(llm_log_p.read_bytes())
+            rd = secure_pickle_loads(llm_log_p.read_bytes())
         except:
             rd = []
         for d in rd:
@@ -1129,17 +1129,13 @@ with st.sidebar:
         elif day_srv == "srv3":
             state.log_folders = [re.sub(r"log\.srv\d*", "log.srv3", folder) for folder in state.log_folders]
 
-    if "log_folder" in st.query_params:
-        state.log_folder = Path(st.query_params["log_folder"])
-        state.log_folders = [str(state.log_folder)]
-    else:
-        state.log_folder = Path(
-            st.radio(
-                f"Select :blue[**one log folder**]",
-                state.log_folders,
-                format_func=lambda x: x[x.rfind("amlt") + 5 :].split("/")[0] if "amlt" in x else x,
-            )
+    state.log_folder = Path(
+        st.radio(
+            f"Select :blue[**one log folder**]",
+            state.log_folders,
+            format_func=lambda x: x[x.rfind("amlt") + 5 :].split("/")[0] if "amlt" in x else x,
         )
+    )
     if not state.log_folder.exists():
         st.warning(f"Path {state.log_folder} does not exist!")
     else:
@@ -1190,10 +1186,7 @@ def get_state_data_range(state_data):
 
 # UI - Main
 if "competition" in state.data:
-    st.title(
-        state.data["competition"]
-        + f" ([share_link](/ds_trace?log_folder={state.log_folder}&selection={state.log_path}))"
-    )
+    st.title(state.data["competition"] + f" ([share_link](/ds_trace?selection={state.log_path}))")
     summarize_win()
     min_id, max_id = get_state_data_range(state.data)
     if max_id > min_id:

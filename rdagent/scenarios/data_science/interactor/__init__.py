@@ -1,5 +1,4 @@
 import json
-import pickle
 import time
 import uuid
 from abc import abstractmethod
@@ -9,6 +8,8 @@ from pathlib import Path
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.core.experiment import Task
 from rdagent.core.interactor import Interactor
+from rdagent.core.serialization import dump as secure_pickle_dump
+from rdagent.core.serialization import load as secure_pickle_load
 from rdagent.scenarios.data_science.experiment.experiment import DSExperiment
 from rdagent.scenarios.data_science.proposal.exp_gen.base import DSHypothesis, DSTrace
 from rdagent.utils.agent.tpl import T
@@ -95,17 +96,21 @@ class FBDSInteractor(DSInteractor):
         }
         session_id = uuid.uuid4().hex
         DS_RD_SETTING.user_interaction_mid_folder.mkdir(parents=True, exist_ok=True)
-        pickle.dump(information_to_user, open(DS_RD_SETTING.user_interaction_mid_folder / f"{session_id}.pkl", "wb"))
+        session_path = DS_RD_SETTING.user_interaction_mid_folder / f"{session_id}.pkl"
+        with session_path.open("wb") as f:
+            secure_pickle_dump(information_to_user, f)
+
+        def load_session_data() -> dict:
+            with session_path.open("rb") as f:
+                return secure_pickle_load(f)
+
         while (
-            Path(DS_RD_SETTING.user_interaction_mid_folder / f"{session_id}.pkl").exists()
-            and pickle.load(open(DS_RD_SETTING.user_interaction_mid_folder / f"{session_id}.pkl", "rb"))[
-                "expired_datetime"
-            ]
-            > datetime.now()
+            session_path.exists()
+            and load_session_data()["expired_datetime"] > datetime.now()
             and not (DS_RD_SETTING.user_interaction_mid_folder / f"{session_id}_RET.json").exists()
         ):
             time.sleep(5)
-        Path(DS_RD_SETTING.user_interaction_mid_folder / f"{session_id}.pkl").unlink(missing_ok=True)
+        session_path.unlink(missing_ok=True)
         if not (DS_RD_SETTING.user_interaction_mid_folder / f"{session_id}_RET.json").exists():
             return exp
         else:

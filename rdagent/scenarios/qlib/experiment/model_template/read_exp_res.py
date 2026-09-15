@@ -52,4 +52,4 @@ else:
     print(f"Output has been saved to {output_path}")
 
     ret_data_frame = latest_recorder.load_object("portfolio_analysis/report_normal_1day.pkl")
-    ret_data_frame.to_pickle("ret.pkl")
+ret_data_frame.to_parquet("ret.parquet")

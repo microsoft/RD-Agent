@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import copy
 import json
-import pickle
 import random
 import re
 from itertools import combinations
@@ -25,6 +24,8 @@ from rdagent.core.evolving_framework import (
     RAGStrategy,
 )
 from rdagent.core.experiment import FBWorkspace, Task
+from rdagent.core.serialization import dump as secure_pickle_dump
+from rdagent.core.serialization import load as secure_pickle_load
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import (
     APIBackend,
@@ -61,7 +62,8 @@ class CoSTEERRAGStrategy(RAGStrategy):
         self, former_knowledge_base_path: Path = None, component_init_list: list = [], evolving_version: int = 2
     ) -> EvolvingKnowledgeBase:
         if former_knowledge_base_path is not None and former_knowledge_base_path.exists():
-            knowledge_base = pickle.load(open(former_knowledge_base_path, "rb"))
+            with former_knowledge_base_path.open("rb") as f:
+                knowledge_base = secure_pickle_load(f)
             if evolving_version == 1 and not isinstance(knowledge_base, CoSTEERKnowledgeBaseV1):
                 raise ValueError("The former knowledge base is not compatible with the current version")
             elif evolving_version == 2 and not isinstance(
@@ -86,7 +88,7 @@ class CoSTEERRAGStrategy(RAGStrategy):
             if not self.dump_knowledge_base_path.parent.exists():
                 self.dump_knowledge_base_path.parent.mkdir(parents=True, exist_ok=True)
             with open(self.dump_knowledge_base_path, "wb") as f:
-                pickle.dump(self.knowledgebase, f)
+                secure_pickle_dump(self.knowledgebase, f)
 
     def load_dumped_knowledge_base(self, *args, **kwargs):
         if self.dump_knowledge_base_path is None:
@@ -95,7 +97,7 @@ class CoSTEERRAGStrategy(RAGStrategy):
             logger.info(f"Dumped knowledge base {self.dump_knowledge_base_path} does not exist, skip loading.")
         else:
             with open(self.dump_knowledge_base_path, "rb") as f:
-                self.knowledgebase = pickle.load(f)
+                self.knowledgebase = secure_pickle_load(f)
             logger.info(f"Loaded dumped knowledge base from {self.dump_knowledge_base_path}")
 
 

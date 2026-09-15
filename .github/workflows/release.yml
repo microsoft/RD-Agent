@@ -9,24 +9,23 @@ jobs:
   release_and_publish:
     permissions:
       contents: write
-      pull-requests: read
+      issues: write
+      pull-requests: write
     runs-on: ubuntu-latest
     steps:
       - name: Release please
         id: release_please
-        uses: googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071 # v4.4.1
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
         with:
-          # The current PAT (personal access token) was created on 2024-08-05,
-          # since the maximum validity of PAT is 1 year, you need to change the PAT before 2025-08-05.
-          token: ${{ secrets.PAT }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           release-type: simple
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         if: ${{ steps.release_please.outputs.release_created }}
         with:
           fetch-depth: 0
       - name: Set up Python
         if: ${{ steps.release_please.outputs.release_created }}
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           cache: pip
           python-version: '3.10'

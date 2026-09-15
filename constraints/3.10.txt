@@ -1,5 +1,6 @@
 azure-identity==1.17.1
 dill==0.3.9
+litellm==1.97.0
 pillow==10.4.0
 psutil==6.1.0
 scipy==1.14.1

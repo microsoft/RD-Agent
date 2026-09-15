@@ -2,12 +2,12 @@
 This module provides some useful functions for working with logger folders.
 """
 
-import pickle
 from datetime import timedelta
 from pathlib import Path
 
 import pandas as pd
 
+from rdagent.core.serialization import load as secure_pickle_load
 from rdagent.utils.workflow import LoopBase
 
 
@@ -21,7 +21,7 @@ def get_first_session_file_after_duration(log_folder: str | Path, duration: str 
     fp = None
     for fp in files:
         with fp.open("rb") as f:
-            session_obj: LoopBase = pickle.load(f)
+            session_obj: LoopBase = secure_pickle_load(f)
         timer = session_obj.timer
         all_duration = timer.all_duration
         remain_time_duration = timer.remain_time()
@@ -70,7 +70,7 @@ if __name__ == "__main__":
     f = get_first_session_file_after_duration("<path to log aptos2019-blindness-detection>", pd.Timedelta("12h"))
 
     with f.open("rb") as f:
-        session_obj: LoopBase = pickle.load(f)
+        session_obj: LoopBase = secure_pickle_load(f)
     loop_trace = session_obj.loop_trace
     last_loop = loop_trace[max(loop_trace.keys())]
     last_step = last_loop[-1]

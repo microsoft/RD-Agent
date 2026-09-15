@@ -1,4 +1,3 @@
-import pickle
 import site
 import traceback
 from pathlib import Path
@@ -140,7 +139,7 @@ PARAM_INIT_VALUE = {param_init_value}
 
             log, results = qtde.dump_python_code_run_and_get_results(
                 code=dump_code,
-                dump_file_names=["execution_feedback_str.pkl", "execution_model_output.pkl"],
+                dump_file_names=["execution_feedback_str.txt", "execution_model_output.npy"],
                 local_path=str(self.workspace_path),
                 env={},
                 code_dump_file_py_name="model_test",

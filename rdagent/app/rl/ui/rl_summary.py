@@ -3,11 +3,12 @@ RL Job Summary View
 Display summary table for all tasks in a job directory
 """
 
-import pickle
 from pathlib import Path
 
 import pandas as pd
 import streamlit as st
+
+from rdagent.core.serialization import load as secure_pickle_load
 
 
 def is_valid_task(task_path: Path) -> bool:
@@ -37,7 +38,7 @@ def get_loop_status(task_path: Path, loop_id: int) -> tuple[str, bool | None]:
     for f in feedback_files:
         try:
             with open(f, "rb") as fp:
-                content = pickle.load(fp)
+                content = secure_pickle_load(fp)
             decision = getattr(content, "decision", None)
             if decision is not None:
                 feedback_decision = decision

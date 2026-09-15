@@ -5,6 +5,7 @@ from typing import List, Union
 import pandas as pd
 
 from rdagent.components.knowledge_management.vector_base import Document, PDVectorBase
+from rdagent.core.serialization import dump as secure_pickle_dump
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import APIBackend
 from rdagent.scenarios.kaggle.knowledge_management.extract_knowledge import (
@@ -288,7 +289,8 @@ class KaggleExperienceBase(PDVectorBase):
         vector_df_path: str or Path
             Path to save the vector DataFrame.
         """
-        self.vector_df.to_pickle(vector_df_path)
+        with Path(vector_df_path).open("wb") as f:
+            secure_pickle_dump({"vector_df": self.vector_df}, f)
         logger.info(f"Vector DataFrame saved to {vector_df_path}")
 
 

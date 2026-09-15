@@ -1,6 +1,5 @@
 import io
 import json
-import pickle
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict
@@ -133,27 +132,18 @@ class KGScenario(Scenario):
     @property
     def source_data(self) -> str:
         data_folder = Path(KAGGLE_IMPLEMENT_SETTING.local_data_path) / self.competition
+        validation_cache = data_folder / "X_valid.parquet"
 
-        if not (data_folder / "X_valid.pkl").exists():
+        if validation_cache.exists():
+            X_valid = pd.read_parquet(validation_cache)
+        else:
             preprocess_experiment = KGFactorExperiment([])
-            (
-                X_train,
-                X_valid,
-                y_train,
-                y_valid,
-                X_test,
-                *others,
-            ) = preprocess_experiment.experiment_workspace.generate_preprocess_data()
+            preprocess_data = preprocess_experiment.experiment_workspace.generate_preprocess_data()
+            X_valid = preprocess_data[1]
 
-            data_folder.mkdir(exist_ok=True, parents=True)
-            pickle.dump(X_train, open(data_folder / "X_train.pkl", "wb"))
-            pickle.dump(X_valid, open(data_folder / "X_valid.pkl", "wb"))
-            pickle.dump(y_train, open(data_folder / "y_train.pkl", "wb"))
-            pickle.dump(y_valid, open(data_folder / "y_valid.pkl", "wb"))
-            pickle.dump(X_test, open(data_folder / "X_test.pkl", "wb"))
-            pickle.dump(others, open(data_folder / "others.pkl", "wb"))
-
-        X_valid = pd.read_pickle(data_folder / "X_valid.pkl")
+            if isinstance(X_valid, pd.DataFrame):
+                data_folder.mkdir(exist_ok=True, parents=True)
+                X_valid.to_parquet(validation_cache)
         # TODO: Hardcoded for now, need to be fixed
         if self.competition == "feedback-prize-english-language-learning":
             return "This is a sparse matrix of descriptive text."

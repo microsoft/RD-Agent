@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import cast
 
+from pydantic import Field
 from pydantic_settings import (
     BaseSettings,
     EnvSettingsSource,
@@ -70,6 +71,9 @@ class RDAgentSettings(ExtendedBaseSettings):
     pickle_cache_folder_path_str: str = str(
         Path.cwd() / "pickle_cache/",
     )  # the path of the folder to store the pickle cache
+    artifact_signing_key: str = Field(default="", exclude=True, repr=False)
+    artifact_signing_key_path: Path = Path.home() / ".rdagent" / "artifact_signing.key"
+    allow_unsafe_legacy_pickle: bool = False
     use_file_lock: bool = (
         True  # when calling the function with same parameters, whether to use file lock to avoid
         # executing the function multiple times

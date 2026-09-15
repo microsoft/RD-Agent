@@ -10,7 +10,6 @@ Tries to create uniform environment for the agent to run;
 import contextlib
 import json
 import os
-import pickle
 import re
 import select
 import shutil
@@ -55,6 +54,9 @@ from tqdm import tqdm
 
 from rdagent.core.conf import ExtendedBaseSettings
 from rdagent.core.experiment import RD_AGENT_SETTINGS
+from rdagent.core.serialization import UntrustedArtifactError
+from rdagent.core.serialization import dump as secure_pickle_dump
+from rdagent.core.serialization import load as secure_pickle_load
 from rdagent.core.utils import cache_with_pickle
 from rdagent.log import rdagent_logger as logger
 from rdagent.oai.llm_utils import md5_hash
@@ -494,13 +496,22 @@ class Env(Generic[ASpecificEnvConf]):
             # + json.dumps(data_key)
         )
         if Path(target_folder / f"{key}.pkl").exists() and Path(target_folder / f"{key}.zip").exists():
-            with open(target_folder / f"{key}.pkl", "rb") as f:
-                ret = pickle.load(f)
-            self.unzip_a_file_into_a_folder(str(target_folder / f"{key}.zip"), local_path, cache_files_to_extract)
+            try:
+                with open(target_folder / f"{key}.pkl", "rb") as f:
+                    ret = secure_pickle_load(f)
+            except UntrustedArtifactError:
+                Path(target_folder / f"{key}.pkl").unlink(missing_ok=True)
+                Path(target_folder / f"{key}.zip").unlink(missing_ok=True)
+                ret = self.__run_with_retry(entry, local_path, env, running_extra_volume)
+                with open(target_folder / f"{key}.pkl", "wb") as f:
+                    secure_pickle_dump(ret, f)
+                self.zip_a_folder_into_a_file(local_path, str(target_folder / f"{key}.zip"))
+            else:
+                self.unzip_a_file_into_a_folder(str(target_folder / f"{key}.zip"), local_path, cache_files_to_extract)
         else:
             ret = self.__run_with_retry(entry, local_path, env, running_extra_volume)
             with open(target_folder / f"{key}.pkl", "wb") as f:
-                pickle.dump(ret, f)
+                secure_pickle_dump(ret, f)
             self.zip_a_folder_into_a_file(local_path, str(target_folder / f"{key}.zip"))
         return cast(EnvResult, ret)
 
@@ -546,6 +557,8 @@ class Env(Generic[ASpecificEnvConf]):
         """
         Dump the code into the local path and run the code.
         """
+        from rdagent.utils.artifact_transport import load_result_artifact
+
         random_file_name = f"{uuid.uuid4()}.py" if code_dump_file_py_name is None else f"{code_dump_file_py_name}.py"
         with open(os.path.join(local_path, random_file_name), "w") as f:
             f.write(code)
@@ -554,11 +567,14 @@ class Env(Generic[ASpecificEnvConf]):
         results = []
         os.remove(os.path.join(local_path, random_file_name))
         for name in dump_file_names:
-            if os.path.exists(os.path.join(local_path, f"{name}")):
-                results.append(pickle.load(open(os.path.join(local_path, f"{name}"), "rb")))
-                os.remove(os.path.join(local_path, f"{name}"))
-            else:
+            result_path = Path(local_path) / name
+            if not result_path.exists():
                 return log_output, []
+            results.extend(load_result_artifact(result_path))
+            if result_path.name == "manifest.json" and result_path.parent.name == "rdagent_artifacts":
+                shutil.rmtree(result_path.parent)
+                continue
+            result_path.unlink()
         return log_output, results
 
     def refresh_env(self) -> None:
@@ -872,16 +888,17 @@ FT_CONDA_CONFIG_DIR = Path(__file__).parent.parent / "scenarios" / "finetune" / 
 # Track which conda environments have been prepared in this process
 # This avoids redundant pip install checks that produce verbose output
 _CONDA_ENV_PREPARED: set[str] = set()
+_CONDA_ENV_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$")
+_PYTHON_VERSION_RE = re.compile(r"^\d+\.\d+(?:\.\d+)?$")
 
 
 def _sync_conda_cache_with_real_envs() -> None:
     """Ensure the prepared cache includes environments that already exist on disk."""
     try:
         result = subprocess.run(
-            "conda env list",
+            ["conda", "env", "list"],
             capture_output=True,
             text=True,
-            shell=True,
             check=False,
         )
     except Exception as exc:  # pragma: no cover - best-effort helper
@@ -913,15 +930,22 @@ def _prepare_conda_env(env_name: str, requirements_file: Path, python_version: s
         requirements_file: Path to requirements.txt file
         python_version: Python version for the environment
     """
-    # 1. Create conda environment if not exists
-    result = subprocess.run(f"conda env list | grep -q '^{env_name} '", shell=True)
-    if result.returncode != 0:
+    if not _CONDA_ENV_NAME_RE.fullmatch(env_name):
+        message = f"Invalid conda environment name: {env_name}"
+        raise ValueError(message)
+    if not _PYTHON_VERSION_RE.fullmatch(python_version):
+        message = f"Invalid Python version: {python_version}"
+        raise ValueError(message)
+
+    requirements_file = requirements_file.resolve()
+    _sync_conda_cache_with_real_envs()
+    if env_name not in _CONDA_ENV_PREPARED:
         print(f"[yellow]Creating conda env '{env_name}' (Python {python_version})...[/yellow]")
-        subprocess.check_call(f"conda create -y -n {env_name} python={python_version}", shell=True)
-        subprocess.check_call(f"conda run -n {env_name} pip install --upgrade pip", shell=True)
+        subprocess.check_call(["conda", "create", "-y", "-n", env_name, f"python={python_version}"])
+        subprocess.check_call(["conda", "run", "-n", env_name, "pip", "install", "--upgrade", "pip"])
 
     print(f"[yellow]Installing dependencies from {requirements_file.name}...[/yellow]")
-    subprocess.check_call(f"conda run -n {env_name} pip install -r {requirements_file}", shell=True)
+    subprocess.check_call(["conda", "run", "-n", env_name, "pip", "install", "-r", str(requirements_file)])
     print(f"[green]Conda env '{env_name}' ready[/green]")
 
     _CONDA_ENV_PREPARED.add(env_name)
@@ -961,8 +985,17 @@ class FTCondaEnv(LocalEnv[FTCondaConf]):
             # Note: flash-attn>=2.8 is required for B200 (sm_100) support
             print("[yellow]Installing flash-attn (compiling, may take a few minutes)...[/yellow]")
             subprocess.check_call(
-                f"conda run -n {self.conf.conda_env_name} pip install 'flash-attn>=2.8' --no-build-isolation --no-cache-dir",
-                shell=True,
+                [
+                    "conda",
+                    "run",
+                    "-n",
+                    self.conf.conda_env_name,
+                    "pip",
+                    "install",
+                    "flash-attn>=2.8",
+                    "--no-build-isolation",
+                    "--no-cache-dir",
+                ],
             )
 
             # Re-update bin_path after prepare() in case the conda env was just created

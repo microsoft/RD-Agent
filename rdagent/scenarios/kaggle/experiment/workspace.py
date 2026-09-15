@@ -8,20 +8,16 @@ import pandas as pd
 from rdagent.app.kaggle.conf import KAGGLE_IMPLEMENT_SETTING
 from rdagent.core.experiment import FBWorkspace
 from rdagent.log import rdagent_logger as logger
+from rdagent.utils.artifact_transport import ARTIFACT_DUMP_CODE
 from rdagent.utils.env import KGDockerEnv
 
-KG_FEATURE_PREPROCESS_SCRIPT = """import pickle
+KG_FEATURE_PREPROCESS_SCRIPT = ARTIFACT_DUMP_CODE + """
 
 from fea_share_preprocess import preprocess_script
 
 X_train, X_valid, y_train, y_valid, X_test, *others = preprocess_script()
 
-pickle.dump(X_train, open("X_train.pkl", "wb"))
-pickle.dump(X_valid, open("X_valid.pkl", "wb"))
-pickle.dump(y_train, open("y_train.pkl", "wb"))
-pickle.dump(y_valid, open("y_valid.pkl", "wb"))
-pickle.dump(X_test, open("X_test.pkl", "wb"))
-pickle.dump(others, open("others.pkl", "wb"))
+dump_safe_artifacts([X_train, X_valid, y_train, y_valid, X_test, others])
 """
 
 
@@ -49,12 +45,7 @@ class KGFBWorkspace(FBWorkspace):
             code=KG_FEATURE_PREPROCESS_SCRIPT,
             local_path=str(self.workspace_path),
             dump_file_names=[
-                "X_train.pkl",
-                "X_valid.pkl",
-                "y_train.pkl",
-                "y_valid.pkl",
-                "X_test.pkl",
-                "others.pkl",
+                "rdagent_artifacts/manifest.json",
             ],
             running_extra_volume=(
                 {KAGGLE_IMPLEMENT_SETTING.local_data_path + "/" + KAGGLE_IMPLEMENT_SETTING.competition: "/kaggle/input"}

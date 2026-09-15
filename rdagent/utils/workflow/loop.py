@@ -13,7 +13,6 @@ import concurrent.futures
 import copy
 import multiprocessing.queues
 import os
-import pickle
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -24,6 +23,8 @@ import psutil
 from tqdm.auto import tqdm
 
 from rdagent.core.conf import RD_AGENT_SETTINGS
+from rdagent.core.serialization import dump as secure_pickle_dump
+from rdagent.core.serialization import load as secure_pickle_load
 from rdagent.log import rdagent_logger as logger
 from rdagent.log.conf import LOG_SETTINGS
 from rdagent.log.timer import RD_Agent_TIMER_wrapper, RDAgentTimer
@@ -429,7 +430,7 @@ class LoopBase:
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
         with path.open("wb") as f:
-            pickle.dump(self, f)
+            secure_pickle_dump(self, f)
 
     def truncate_session_folder(self, li: int, si: int) -> None:
         """
@@ -496,7 +497,7 @@ class LoopBase:
             session_folder = path.parent.parent
 
         with path.open("rb") as f:
-            session = cast(LoopBase, pickle.load(f))
+            session = cast(LoopBase, secure_pickle_load(f))
 
         # set session folder
         if checkout:

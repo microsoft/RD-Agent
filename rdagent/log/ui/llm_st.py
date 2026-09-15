@@ -1,6 +1,5 @@
 import argparse
 import json
-import pickle
 import re
 import time
 from pathlib import Path
@@ -8,6 +7,7 @@ from pathlib import Path
 import streamlit as st
 from streamlit import session_state
 
+from rdagent.core.serialization import load as secure_pickle_load
 from rdagent.log.ui.conf import UI_SETTING
 from rdagent.log.utils import extract_evoid, extract_loopid_func_name
 
@@ -56,7 +56,7 @@ def load_data():
         with st.spinner(f"正在加载数据文件 {log_file}..."):
             start_time = time.time()
             with open(log_file, "rb") as f:
-                session_state.data = pickle.load(f)
+                session_state.data = secure_pickle_load(f)
             st.success(f"数据加载完成！耗时 {time.time() - start_time:.2f} 秒")
             st.session_state["current_loop"] = 1
     except Exception as e:
