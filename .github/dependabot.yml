@@ -5,6 +5,11 @@ updates:
     package-ecosystem: github-actions
     schedule:
       interval: weekly
+    groups:
+      github-actions:
+        patterns: ["*"]
+    cooldown:
+      default-days: 7
   - commit-message:
       prefix: build(requirements)
     directory: /
