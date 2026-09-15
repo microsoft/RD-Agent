@@ -211,6 +211,7 @@ class DataScienceRDLoop(RDLoop):
     def record(self, prev_out: dict[str, Any]):
 
         exp: DSExperiment = None
+        generated_exp: DSExperiment = prev_out["direct_exp_gen"]
 
         cur_loop_id = prev_out[self.LOOP_IDX_KEY]
 
@@ -252,7 +253,7 @@ class DataScienceRDLoop(RDLoop):
             )
             # Value backpropagation is handled in async_gen before next() via observe_commits
 
-            if self.trace.sota_experiment() is None:
+            if not generated_exp.is_merge_phase and self.trace.sota_experiment() is None:
                 if DS_RD_SETTING.coder_on_whole_pipeline:
                     #  check if feedback is not generated
                     if len(self.trace.hist) >= DS_RD_SETTING.coding_fail_reanalyze_threshold:
