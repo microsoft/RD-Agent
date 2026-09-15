@@ -1,3 +1,13 @@
+from rdagent.components.coder.factor_coder._costeer_compat import (
+    install_compat_redirector,
+)
+
+# Re-route the pre-refactor `rdagent.components.coder.factor_coder.CoSTEER.*`
+# import path to the new `rdagent.components.coder.CoSTEER.*` package so that
+# pre-existing pickled traces (e.g. the `demo_traces` archive referenced in
+# the README) continue to deserialise under `rdagent ui`. See #1331.
+install_compat_redirector()
+
 from rdagent.components.coder.CoSTEER import CoSTEER
 from rdagent.components.coder.CoSTEER.evaluators import CoSTEERMultiEvaluator
 from rdagent.components.coder.factor_coder.config import FACTOR_COSTEER_SETTINGS
