@@ -32,7 +32,9 @@ from rdagent.core.evolving_framework import (
     Feedback,
     Knowledge,
 )
+from rdagent.core.experiment import Task
 from rdagent.core.prompts import Prompts
+from rdagent.core.scenario import Scenario
 from rdagent.oai.llm_utils import APIBackend
 
 py_parser = Parser(Language(tree_sitter_python.language()))
@@ -428,6 +430,35 @@ class MultiEvaluator(Evaluator):
         return CIFeedback(errors=all_errors)
 
 
+class CIScen(Scenario):
+    """Minimal scenario for the CI linting workflow.
+
+    `EvolvingStrategy` requires a `Scenario` instance, but the CI run loop only
+    needs the lint-rule prompts in `CI_prompts` — it never inspects scenario
+    state. The descriptions below are kept short and CI-specific so the
+    `Scenario` API contract is honoured without dragging in unrelated config.
+    """
+
+    @property
+    def background(self) -> str:
+        return "Automated code-quality repair loop driven by ruff/mypy diagnostics."
+
+    @property
+    def rich_style_description(self) -> str:
+        return "[bold]RD-Agent CI[/bold]: iteratively fix lint and type errors."
+
+    def get_scenario_all_desc(
+        self,
+        task: Task | None = None,
+        filtered_tag: str | None = None,
+        simple_background: bool | None = None,
+    ) -> str:
+        return self.background
+
+    def get_runtime_environment(self) -> str:
+        return ""
+
+
 class CIEvoStr(EvolvingStrategy):
     def evolve(  # noqa: C901, PLR0912, PLR0915
         self,
@@ -726,7 +757,7 @@ start_timestamp = datetime.datetime.now(datetime.timezone.utc).strftime("%m%d%H%
 repo = Repo(DIR, excludes=excludes)
 # evaluator = MultiEvaluator(MypyEvaluator(), RuffEvaluator())
 evaluator = RuffEvaluator()
-estr = CIEvoStr()
+estr = CIEvoStr(scen=CIScen())
 ea = CIEvoAgent(estr)
 ea.multistep_evolve(repo, evaluator)
 while True:
