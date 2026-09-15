@@ -22,3 +22,6 @@ RUN python -m pip install -e .
 RUN pip install catboost
 RUN pip install xgboost
 RUN pip install tables
+
+# Qlib's recorder uses the ./mlruns filestore; newer MLflow gates it behind this flag.
+ENV MLFLOW_ALLOW_FILE_STORE=true
