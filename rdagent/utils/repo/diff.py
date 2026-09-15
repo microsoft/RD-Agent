@@ -27,12 +27,12 @@ def generate_diff(dir1: str, dir2: str, file_pattern: str = "*.py") -> list[str]
         file1 = Path(dir1) / file
         file2 = Path(dir2) / file
         if file1.exists():
-            with file1.open() as f1:
+            with file1.open(encoding="utf-8") as f1:
                 file_dict1[str(file)] = f1.read()
         else:
             file_dict1[str(file)] = ""
         if file2.exists():
-            with file2.open() as f2:
+            with file2.open(encoding="utf-8") as f2:
                 file_dict2[str(file)] = f2.read()
         else:
             file_dict2[str(file)] = ""
