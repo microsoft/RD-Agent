@@ -65,12 +65,33 @@ qlib_factor_strategy: |-
     other_df['datetime'] = pd.to_datetime(other_df['datetime'])
     ```
  
-  5. **Merge operations**:  
+  5. **Merge operations**:
     ```python
     # When merging DataFrames, ensure you are merging on both 'datetime' and 'instrument'.
     # If these are part of the index, reset the index before merging.
     merged_df = pd.merge(df, other_df, on=['datetime', 'instrument'], how='inner')
     ```
+
+  6. **Avoid per-instrument or per-day model retraining (performance critical)**:
+    The factor MUST be computable in a single vectorized pass over the full
+    `(datetime, instrument)` panel. If the factor involves an ML estimator
+    (e.g. LSTM, GRU, Transformer, RandomForest, XGBoost, LightGBM, MLP), fit
+    the model exactly ONCE on the full panel and batch-predict for every
+    `(datetime, instrument)` row in a single call. Do NOT wrap `model.fit(...)`
+    or estimator construction inside `for instrument in instruments:` or
+    `for day in trading_days:` loops -- on a realistic 5K-instrument x 1K-day
+    A-share panel that creates O(instruments * days) fit calls (~10^8 training
+    iterations) and the run hangs at 100% CPU for hours instead of finishing
+    in minutes. Use either:
+    ```python
+    # Pre-fit once on the full panel, then vectorized predict.
+    model = SomeEstimator(...).fit(X_panel, y_panel)
+    df['factor_value'] = model.predict(X_panel)
+    ```
+    or restrict ML usage to lightweight rolling closed-form estimators that
+    can be expressed with `groupby(level='instrument').rolling(...).apply(...)`
+    or pandas/numpy vectorized ops -- never a Python-level nested loop that
+    re-instantiates and re-trains the estimator per stock or per date.
 
 qlib_factor_output_format: |-
   Your output should be a pandas dataframe similar to the following example information:
