@@ -141,7 +141,7 @@ def main(
     Auto R&D Evolving loop for fintech factors.
     You can continue running session by
     .. code-block:: python
-        dotenv run -- python rdagent/app/qlib_rd_loop/quant.py $LOG_PATH/__session__/1/0_propose  --step_n 1   # `step_n` is a optional paramter
+        dotenv run -- python rdagent/app/qlib_rd_loop/quant.py $LOG_PATH/__session__/1/0_propose  --step_n 1   # `step_n` is a optional parameter
     """
     if path is None:
         quant_loop = QuantRDLoop(QUANT_PROP_SETTING)
