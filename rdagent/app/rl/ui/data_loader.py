@@ -4,6 +4,7 @@ Load pkl logs and convert to hierarchical timeline structure
 Simplified version: no EvoLoop (RL doesn't have evolution loops)
 """
 
+import pickle
 import re
 from dataclasses import dataclass, field
 from datetime import datetime
