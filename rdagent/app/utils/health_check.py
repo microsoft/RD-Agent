@@ -49,6 +49,11 @@ def check_and_list_free_ports(start_port=19899, max_ports=10) -> None:
         logger.info(f"Port {start_port} is not occupied, you can run the `rdagent ui/server_ui` command")
 
 
+def _has_config_value(name: str) -> bool:
+    value = os.getenv(name)
+    return value is not None and value.strip() != ""
+
+
 def test_chat(chat_model, chat_api_key, chat_api_base):
     logger.info(f"🧪 Testing chat model: {chat_model}")
     try:
@@ -99,7 +104,7 @@ def env_check():
             f"You can run a command like this: `dotenv set BACKEND rdagent.oai.backend.LiteLLMAPIBackend`"
         )
 
-    if os.getenv("DEEPSEEK_API_KEY"):
+    if _has_config_value("DEEPSEEK_API_KEY"):
         chat_api_key = os.getenv("DEEPSEEK_API_KEY")
         chat_model = os.getenv("CHAT_MODEL")
         embedding_model = os.getenv("EMBEDDING_MODEL")
@@ -111,7 +116,7 @@ def env_check():
             chat_api_base = os.getenv("OPENAI_API_BASE")
         else:
             chat_api_base = None
-    elif os.getenv("OPENAI_API_KEY"):
+    elif _has_config_value("OPENAI_API_KEY"):
         chat_api_key = os.getenv("OPENAI_API_KEY")
         chat_api_base = os.getenv("OPENAI_API_BASE")
         chat_model = os.getenv("CHAT_MODEL")
