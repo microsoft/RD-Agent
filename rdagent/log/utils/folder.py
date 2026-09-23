@@ -46,6 +46,10 @@ def first_li_si_after_one_time(log_path: Path, hours: int = 12) -> tuple[int, in
     Returns:
         tuple[int, int, str]: The loop id, step id and function name.
     """
+    # Imported here rather than at module scope: this module is a low-level log
+    # utility and rdagent.app.data_science.loop pulls in the full application stack.
+    from rdagent.app.data_science.loop import DataScienceRDLoop
+
     session_path = log_path / "__session__"
     max_li = max(int(p.name) for p in session_path.iterdir() if p.is_dir() and p.name.isdigit())
     max_step = max(int(p.name.split("_")[0]) for p in (session_path / str(max_li)).iterdir() if p.is_file())
