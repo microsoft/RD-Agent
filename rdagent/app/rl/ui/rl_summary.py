@@ -144,8 +144,8 @@ def style_df_with_decisions(df: pd.DataFrame, decisions_df: pd.DataFrame):
 
     styles = pd.DataFrame("", index=df.index, columns=df.columns)
     for row_idx in range(len(df)):
-        for col in df.columns:
-            styles.iloc[row_idx][col] = apply_styles(row_idx, col)
+        for col_idx, col in enumerate(df.columns):
+            styles.iloc[row_idx, col_idx] = apply_styles(row_idx, col)
 
     return df.style.apply(lambda _: styles, axis=None)
 
