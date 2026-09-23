@@ -519,13 +519,12 @@ class CoSTEERRAGStrategyV2(CoSTEERRAGStrategy):
         else:
             error_list = []
             for error_content in error_contents:
-                for error_node in all_error_nodes:
-                    if error_content == error_node.content:
-                        error_list.append(error_node)
-                    else:
-                        error_list.append(error_content)
-                    if error_list[-1] in error_list[:-1]:
-                        error_list.pop()
+                matched_node = next(
+                    (error_node for error_node in all_error_nodes if error_node.content == error_content), None
+                )
+                error_item = error_content if matched_node is None else matched_node
+                if error_item not in error_list:
+                    error_list.append(error_item)
 
             return error_list
 
