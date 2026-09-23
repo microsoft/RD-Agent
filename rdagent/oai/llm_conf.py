@@ -66,6 +66,9 @@ class LLMSettings(ExtendedBaseSettings):
     chat_openai_base_url: str | None = None  #
     chat_azure_api_base: str = ""
     chat_azure_api_version: str = ""
+    # OpenAI-Compatible API config (for chat completion)
+    chat_openai_compatible_api_key: str = ""
+    chat_openai_compatible_api_base: str = ""
     chat_max_tokens: int | None = None
     chat_temperature: float = 0.5
     chat_stream: bool = True
@@ -87,6 +90,10 @@ class LLMSettings(ExtendedBaseSettings):
     embedding_azure_api_version: str = ""
     embedding_max_str_num: int = 50
     embedding_max_length: int = 8192
+    embedding_extra_params: dict = {}
+    # OpenAI-Compatible API config (for embedding)
+    embedding_openai_compatible_api_key: str = ""
+    embedding_openai_compatible_api_base: str = ""
 
     # offline llama2 related config
     use_llama2: bool = False
