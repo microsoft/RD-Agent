@@ -1102,7 +1102,7 @@ def compare(
     if select_best:
 
         def apply_func(cdf: pd.DataFrame):
-            cp = cdf["Competition"].values[0]
+            cp = cdf.name  # pandas 3 drops the grouping column from each group
             md = get_metric_direction(cp)
             # If SOTA Exp Score (valid, to_submit) column is empty, return the first index
             if cdf["SOTA Exp Score (valid, to_submit)"].dropna().empty:
