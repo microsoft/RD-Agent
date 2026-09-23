@@ -394,14 +394,15 @@ By default, `server_ui` serves static files from `./git_ignore_folder/static`. I
 Start the Flask backend and serve the built frontend together with the real-time APIs:
 
 ```sh
+export UI_SERVER_AUTH_TOKEN='<a-long-random-token>'
 rdagent server_ui --port 19899
 ```
 
-After that, open `http://127.0.0.1:19899` in your browser.
+After that, open `http://127.0.0.1:19899/?token=<a-long-random-token>` once in your browser.
 
 ##### Web UI security and remote access
 
-The Flask backend listens on `127.0.0.1` by default. This keeps its process-control, upload, and trace APIs accessible only from the local machine. No authentication token is required while the server is bound to localhost.
+The Flask backend listens on `127.0.0.1` by default. All API access requires authentication, including localhost: a malicious website can send requests to a browser's local services. Configure a long, random `UI_SERVER_AUTH_TOKEN` before starting the server (for example, generate one with `python -c 'import secrets; print(secrets.token_urlsafe(32))'`).
 
 To access the Web UI from another machine, explicitly bind it to a non-local address and configure an authentication token:
 
@@ -422,13 +423,17 @@ The server removes the token from the address bar by redirecting to `/` and stor
 Authorization: Bearer <a-long-random-token>
 ```
 
-The server refuses to bind to a non-local address unless `UI_SERVER_AUTH_TOKEN` is set. When exposing it outside a trusted development machine, put it behind an HTTPS reverse proxy and avoid recording token-bearing query strings in proxy logs. The `--host` option controls the address when the server is started through the CLI; `UI_SERVER_HOST` is the corresponding default for direct use of the backend entry point.
+The server refuses to start unless `UI_SERVER_AUTH_TOKEN` is set, even on localhost. When exposing it outside a trusted development machine, put it behind an HTTPS reverse proxy and avoid recording token-bearing query strings in proxy logs. The `--host` option controls the address when the server is started through the CLI; `UI_SERVER_HOST` is the corresponding default for direct use of the backend entry point.
 
 Cross-origin browser access is disabled by default. If the frontend and backend are served from different origins, configure an explicit JSON allowlist rather than enabling every origin:
 
 ```sh
 export UI_CORS_ALLOWED_ORIGINS='["https://ui.example.com"]'
 ```
+
+Origins must be exact HTTP(S) origins, including any non-default port; wildcards and URL paths are rejected. The server validates request origins before executing API handlers. Cookie-authenticated POSTs require a same-origin or allowlisted `Origin` (or `Referer` when `Origin` is absent). Requests with missing provenance are rejected. Non-browser clients and internal trace publishers must send a Bearer token. Cross-origin clients must authenticate as well; CORS permission does not grant API access. When a reverse proxy changes the backend's host or scheme, add the exact browser-facing origin to the allowlist; arbitrary forwarded headers are not trusted.
+
+The Web UI starts tasks that generate and execute code. Treat authenticated access as trusted operator access, and run workers in an isolated, least-privileged environment with restricted network egress and no host credentials or Docker socket exposed to generated code.
 
 ##### Web UI storage and compatibility settings
 
@@ -440,12 +445,14 @@ The Flask backend uses the following environment variables. Uploaded input files
 | `UI_TRACE_FOLDER` | `./git_ignore_folder/traces` | Directory containing generated trace data and process logs. |
 | `UI_UPLOAD_FOLDER` | `./git_ignore_folder/uploads` | Isolated directory for uploaded input files. Mount, back up, and clean it separately from the trace directory. |
 | `UI_SERVER_HOST` | `127.0.0.1` | Default host used by the backend entry point. Use `server_ui --host` when starting it through the CLI. |
-| `UI_SERVER_AUTH_TOKEN` | empty | Bearer/cookie authentication token. Required for any non-localhost binding. |
+| `UI_SERVER_AUTH_TOKEN` | empty | Bearer/cookie authentication token. Required for all bindings, including localhost. |
 | `UI_CORS_ALLOWED_ORIGINS` | `[]` | JSON list of allowed browser origins. CORS is disabled when the list is empty. |
 | `UI_MAX_UPLOAD_MB` | `20` | Maximum size in MiB of an entire HTTP request, including all uploaded files and form data. |
 | `UI_LOAD_LEGACY_PICKLE_TRACES` | `false` | Whether to deserialize persisted pickle traces when the server starts. Enable only for a fully trusted trace directory. |
 
 Uploads whose filenames end in `.dill`, `.pickle`, `.pkl`, `.py`, `.pyc`, or `.pyo` are rejected. Existing workflows that use these formats as uploaded inputs must convert them to a non-executable data format or provide them through another trusted mechanism.
+
+The `/upload` API accepts actual file uploads only; URL and server-path text inputs are rejected before task creation. General Model Implementation requires exactly one uploaded report. Download any report through a trusted process first, then upload it. This removes the API's arbitrary report-fetch entry point; it does not sandbox code generated by an authorized task.
 
 Legacy pickle trace loading is disabled by default because pickle deserialization can execute code. Consequently, after a server restart, an existing trace may still appear in the history list but its saved messages will not be loaded into the Web UI. If compatibility with trusted historical traces is required, opt in explicitly:
 

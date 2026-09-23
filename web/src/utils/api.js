@@ -15,6 +15,13 @@ export function uploadFile(data, config = {}) {
         // },
         data: data,
         ...config
+    }).then((response) => {
+        // The shared interceptor resolves HTTP errors as Axios responses.
+        // Only a payload containing a trace ID means a task was started.
+        if (typeof response?.id !== 'string' || !response.id.trim()) {
+            throw new Error(response?.data?.error || response?.error || 'Upload failed. Please try again.');
+        }
+        return response;
     })
 }
 
