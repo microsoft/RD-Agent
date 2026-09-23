@@ -1,5 +1,11 @@
 # API
 
+All API requests require `UI_SERVER_AUTH_TOKEN`, including on localhost.
+API clients must send `Authorization: Bearer <token>`. Browser cookie sessions
+must provide a trusted `Origin` or `Referer` on POST requests. Cross-origin
+requests are rejected unless their exact origin is explicitly allowed through
+`UI_CORS_ALLOWED_ORIGINS`; an allowed origin still requires authentication.
+
 ## A. Controls
 
 ### 1. /upload [POST]
@@ -15,7 +21,7 @@
     6. "Data Science"
 - "files": **2** scenarios need this
     1. in "Finance Data Building (Reports)" Scenario, one or more pdf files.
-    2. in "General Model Implementation" Scenario, one pdf file or one pdf link like `https://arxiv.org/pdf/2210.09789`
+    2. in "General Model Implementation" Scenario, exactly one uploaded PDF file. URL and server-path text inputs are rejected.
 - "competition": **Data Science** Scenario need this, one of 75 competitions.
 - "loops": Number of loops after which RD-Agent will automatically stop (optional; if not set, it will not stop automatically and must be stopped manually).
 - "all_duration": Total duration (in hours) for which the RD-Agent should run before stopping automatically. If not set, the agent will continue running until stopped manually or by the "loops" parameter.

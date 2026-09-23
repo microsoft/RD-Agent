@@ -23,11 +23,9 @@ from flask import (
     send_from_directory,
     url_for,
 )
-from flask_cors import CORS
-from werkzeug.utils import secure_filename
-
 from rdagent.log.server.security import (
     SCENARIO_TARGETS,
+    normalize_origin,
     parse_competition,
     resolve_within,
     validate_scenario,
@@ -36,10 +34,16 @@ from rdagent.log.server.security import (
 from rdagent.log.storage import FileStorage
 from rdagent.log.ui.conf import UI_SETTING
 from rdagent.log.ui.storage import WebStorage
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__, static_folder=str(Path(UI_SETTING.static_path).resolve()))
-if UI_SETTING.cors_allowed_origins:
-    CORS(app, origins=UI_SETTING.cors_allowed_origins, supports_credentials=True)
+app.config["CORS_ALLOWED_ORIGINS"] = set()
+for origin in UI_SETTING.cors_allowed_origins:
+    normalized = normalize_origin(origin)
+    if normalized is None:
+        message = "UI_CORS_ALLOWED_ORIGINS must contain exact HTTP(S) origins without wildcards or paths"
+        raise ValueError(message)
+    app.config["CORS_ALLOWED_ORIGINS"].add(normalized)
 app.config["UI_SERVER_PORT"] = 19899
 app.config["MAX_CONTENT_LENGTH"] = UI_SETTING.max_upload_mb * 1024 * 1024
 app.config["AUTH_TOKEN"] = UI_SETTING.server_auth_token
@@ -52,16 +56,50 @@ _PUBLIC_ENDPOINTS = {"favicon", "index", "server_static_files", "static"}
 
 @app.before_request
 def _require_authentication() -> Response | tuple[Response, int] | None:
-    token = app.config.get("AUTH_TOKEN", "")
-    if not token or request.method == "OPTIONS" or request.endpoint in _PUBLIC_ENDPOINTS:
+    # CORS response headers alone do not stop simple cross-origin POSTs.
+    origin = request.headers.get("Origin")
+    normalized_origin = normalize_origin(origin) if origin is not None else None
+    allowed_origins = app.config["CORS_ALLOWED_ORIGINS"] | {normalize_origin(request.host_url.rstrip("/"))}
+    if origin is not None and (normalized_origin is None or normalized_origin not in allowed_origins):
+        return jsonify({"error": "Untrusted request origin"}), 403
+    if request.endpoint in _PUBLIC_ENDPOINTS or request.method == "OPTIONS":
         return None
+
+    token = app.config.get("AUTH_TOKEN", "")
+    if not token:
+        return jsonify({"error": "UI_SERVER_AUTH_TOKEN must be configured"}), 503
 
     authorization = request.headers.get("Authorization", "")
     header_token = authorization.removeprefix("Bearer ") if authorization.startswith("Bearer ") else ""
-    provided_token = header_token or request.cookies.get("rdagent_auth", "")
-    if not provided_token or not hmac.compare_digest(provided_token, token):
+    provided_token = header_token if authorization else request.cookies.get("rdagent_auth", "")
+    if not provided_token or not hmac.compare_digest(provided_token.encode(), token.encode()):
         return jsonify({"error": "Authentication required"}), 401
+    if not header_token and request.method not in {"GET", "HEAD"}:
+        # Cookie credentials are ambient. Missing browser provenance fails closed;
+        # internal/non-browser clients use an explicit Bearer token instead.
+        source = (
+            normalized_origin
+            if origin is not None
+            else normalize_origin(request.headers.get("Referer", ""), allow_path=True)
+        )
+        if source is None or source not in allowed_origins:
+            return jsonify({"error": "Trusted Origin or Referer required for cookie authentication"}), 403
     return None
+
+
+@app.after_request
+def _set_security_headers(response: Response) -> Response:
+    # Match literal origins; never interpret operator configuration as a regex.
+    origin = request.headers.get("Origin", "")
+    if normalize_origin(origin) in app.config["CORS_ALLOWED_ORIGINS"]:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type"
+        response.headers["Access-Control-Allow-Methods"] = "GET, HEAD, POST, OPTIONS"
+    response.vary.add("Origin")
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 class _YellowWarningFormatter(logging.Formatter):
@@ -429,6 +467,10 @@ def upload_file():
     except ValueError:
         return jsonify({"error": "Invalid scenario"}), 400
     files = request.files.getlist("files")
+    if request.form.getlist("files"):
+        return jsonify({"error": "Upload files directly; URLs and server paths are not accepted"}), 400
+    if scenario == "General Model Implementation" and (len(files) != 1 or not files[0].filename):
+        return jsonify({"error": "Exactly one report file must be uploaded"}), 400
     competition = request.form.get("competition")
     loop_n = request.form.get("loops")
     all_duration = request.form.get("all_duration")
@@ -490,10 +532,7 @@ def upload_file():
     if scenario == "Finance Data Building (Reports)":
         kwargs = {"report_folder": str(trace_files_path), "all_duration": all_duration_val}
     if scenario == "General Model Implementation":
-        if len(files) == 0:  # files is one link
-            rfp = request.form.get("files", "")
-        else:  # one file is uploaded
-            rfp = str(resolve_within(trace_files_path, validate_upload_filename(secure_filename(files[0].filename))))
+        rfp = str(resolve_within(trace_files_path, validate_upload_filename(secure_filename(files[0].filename))))
         kwargs = {"report_file_path": rfp}
     if scenario == "Data Science":
         kwargs = {"competition": competition, "loop_n": loop_n_val, "timeout": all_duration_val}
@@ -618,9 +657,9 @@ def test():
 def index():
     token = app.config.get("AUTH_TOKEN", "")
     supplied_token = request.args.get("token", "")
-    if token and supplied_token and hmac.compare_digest(supplied_token, token):
+    if token and supplied_token and hmac.compare_digest(supplied_token.encode(), token.encode()):
         response = make_response(redirect(url_for("index")))
-        response.set_cookie("rdagent_auth", token, httponly=True, samesite="Strict")
+        response.set_cookie("rdagent_auth", token, httponly=True, samesite="Strict", secure=request.is_secure)
         return response
     return send_from_directory(app.static_folder, "index.html")
 
@@ -631,8 +670,9 @@ def server_static_files(fn):
 
 
 def main(port: int = 19899, host: str = UI_SETTING.server_host) -> None:
-    if host not in {"127.0.0.1", "::1", "localhost"} and not app.config.get("AUTH_TOKEN"):
-        raise ValueError("UI_SERVER_AUTH_TOKEN is required when binding the log server beyond localhost")
+    if not app.config.get("AUTH_TOKEN"):
+        message = "UI_SERVER_AUTH_TOKEN is required for all log server bindings, including localhost"
+        raise ValueError(message)
     app.config["UI_SERVER_PORT"] = port
     if app.config.get("AUTH_TOKEN"):
         app.logger.info("Authentication enabled. Open /?token=<UI_SERVER_AUTH_TOKEN> to establish a secure session.")

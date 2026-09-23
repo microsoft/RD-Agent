@@ -1,5 +1,6 @@
 import re
 from pathlib import Path
+from urllib.parse import urlsplit
 
 SCENARIO_TARGETS = {
     "Finance Data Building": "fin_factor",
@@ -18,6 +19,29 @@ _ERR_INVALID_FILENAME = "Invalid upload filename"
 _ERR_PATH_ESCAPE = "Path escapes the configured root"
 _ERR_UNKNOWN_SCENARIO = "Unknown scenario"
 _ERR_UNSAFE_FILE_TYPE = "Unsafe upload file type"
+
+
+def normalize_origin(value: str, *, allow_path: bool = False) -> str | None:
+    """Parse a single HTTP origin, optionally extracting it from a Referer URL."""
+    if not value or any(char.isspace() for char in value) or "\\" in value or "*" in value:
+        return None
+    try:
+        parsed = urlsplit(value)
+        if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+            return None
+        if parsed.username is not None or parsed.password is not None:
+            return None
+        if not allow_path and (parsed.path or parsed.query or parsed.fragment):
+            return None
+        port = parsed.port
+    except ValueError:
+        return None
+    host = parsed.hostname.lower()
+    if ":" in host:
+        host = f"[{host}]"
+    if port is not None and port != {"http": 80, "https": 443}[parsed.scheme]:
+        host = f"{host}:{port}"
+    return f"{parsed.scheme}://{host}"
 
 
 def validate_scenario(value: str | None) -> str:
