@@ -127,7 +127,9 @@
               </div>
               <el-upload
                 drag
-                multiple
+                :multiple="!isGeneralModelScenario"
+                :limit="isGeneralModelScenario ? 1 : undefined"
+                :on-exceed="onUploadLimitExceeded"
                 accept=".pdf"
                 :auto-upload="false"
                 :on-change="changeFile"
@@ -139,7 +141,7 @@
                   <div class="upload-box-bg">
                     <span class="upload-small"></span>
                     <h3>research reports, papers, etc.</h3>
-                    <p>(Supported format: .pdf)</p>
+                    <p>{{ isGeneralModelScenario ? "Upload one .pdf file" : "Supported format: .pdf" }}</p>
                   </div>
                 </div>
               </el-upload>
@@ -632,6 +634,9 @@ const guidedScenarioList = [
 const scenarioList = ref(visibleContinuousScenarioList);
 const scenarioCheckedIndex = ref(0);
 const scenarioChecked = ref(visibleContinuousScenarioList[0]);
+const isGeneralModelScenario = computed(
+  () => scenarioChecked.value?.name === "General Model Implementation"
+);
 const introName = ref(Object.keys(visibleContinuousScenarioList[0].introduce));
 const editLoop = ref(visibleContinuousScenarioList[0].editLoop);
 const developer = ref(visibleContinuousScenarioList[0].developer);
@@ -737,6 +742,10 @@ const scenarioCheckedItem = (data) => {
   id.value = "";
   syncLoopCountWithSelectedFiles();
 };
+const onUploadLimitExceeded = () => {
+  ElMessage.warning("General Model Implementation requires exactly one PDF file.");
+};
+
 const changeFile = (file, fileList) => {
   const nameSet = new Set();
   const uniqueFiles = [];
@@ -806,14 +815,19 @@ const createScenarioFormData = () => {
 
 const submitScenarioUpload = (formData) => {
   loading.value = true;
-  uploadFile(formData)
+  return uploadFile(formData)
     .then((response) => {
-      loading.value = false;
       id.value = response.id;
       uploaDone.value = true;
       showPlayground.value = true;
     })
-    .catch(() => {
+    .catch((error) => {
+      id.value = "";
+      uploaDone.value = false;
+      showPlayground.value = false;
+      ElMessage.error(error.message || "Upload failed. Please try again.");
+    })
+    .finally(() => {
       loading.value = false;
     });
 };
@@ -906,6 +920,10 @@ const generate = () => {
   uploaDone.value = false;
   if (id.value) {
     showPlayground.value = true;
+    return;
+  }
+  if (isGeneralModelScenario.value && selectedFiles.value.length !== 1) {
+    onUploadLimitExceeded();
     return;
   }
   if (scenarioChecked.value && scenarioChecked.value.upload) {

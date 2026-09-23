@@ -23,6 +23,8 @@ from flask import (
     send_from_directory,
     url_for,
 )
+from werkzeug.utils import secure_filename
+
 from rdagent.log.server.security import (
     SCENARIO_TARGETS,
     normalize_origin,
@@ -34,7 +36,6 @@ from rdagent.log.server.security import (
 from rdagent.log.storage import FileStorage
 from rdagent.log.ui.conf import UI_SETTING
 from rdagent.log.ui.storage import WebStorage
-from werkzeug.utils import secure_filename
 
 app = Flask(__name__, static_folder=str(Path(UI_SETTING.static_path).resolve()))
 app.config["CORS_ALLOWED_ORIGINS"] = set()

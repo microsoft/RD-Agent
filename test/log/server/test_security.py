@@ -4,9 +4,10 @@ from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
+from flask.testing import FlaskClient
+
 import rdagent.log.server.app as server
 import rdagent.log.ui.storage as web_storage
-from flask.testing import FlaskClient
 from rdagent.log.server.security import (
     normalize_origin,
     parse_competition,
