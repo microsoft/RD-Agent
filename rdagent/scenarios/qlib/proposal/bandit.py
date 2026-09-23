@@ -93,8 +93,11 @@ class LinearThompsonTwoArm:
 
 
 class EnvController:
+    """Default reward weights apply to new controllers, not restored weights or learned state."""
+
     def __init__(self, weights: Tuple[float, ...] = None) -> None:
-        self.weights = np.asarray(weights or (0.1, 0.1, 0.05, 0.05, 0.25, 0.15, 0.1, 0.2))
+        # Qlib's non-positive mdd becomes a positive magnitude in as_vector(); penalize it.
+        self.weights = np.asarray(weights or (0.1, 0.1, 0.05, 0.05, 0.25, 0.15, -0.1, 0.2))
         self.bandit = LinearThompsonTwoArm(dim=8, prior_var=10.0, noise_var=0.5)
 
     def reward(self, m: Metrics) -> float:
