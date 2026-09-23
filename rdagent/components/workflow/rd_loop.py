@@ -237,5 +237,10 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
 
     def record(self, prev_out: dict[str, Any]):
         feedback = prev_out["feedback"]
-        exp = prev_out.get("running") or prev_out.get("coding") or prev_out.get("direct_exp_gen", {}).get("exp_gen")
+        # NOTE: not every direct_exp_gen implementation wraps the experiment in {"exp_gen": ...};
+        # some subclasses (e.g. FactorReportLoop) return the experiment directly.
+        direct_exp_gen_out = prev_out.get("direct_exp_gen")
+        if isinstance(direct_exp_gen_out, dict):
+            direct_exp_gen_out = direct_exp_gen_out.get("exp_gen")
+        exp = prev_out.get("running") or prev_out.get("coding") or direct_exp_gen_out
         self.trace.sync_dag_parent_and_hist((exp, feedback), prev_out[self.LOOP_IDX_KEY])
