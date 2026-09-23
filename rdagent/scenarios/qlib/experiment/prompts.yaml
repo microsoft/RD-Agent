@@ -31,6 +31,40 @@ qlib_factor_interface: |-
   Your python code should follow the interface to better interact with the user's system.
   Your python code should contain the following part: the import part, the function part, and the main part. You should write a main function name: "calculate_{function_name}" and call this function in "if __name__ == __main__" part. Don't write any try-except block in your python code. The user will catch the exception message and provide the feedback to you.
   User will write your python code into a python file and execute the file directly with "python {your_file_name}.py". You should calculate the factor values and save the result into a HDF5(H5) file named "result.h5" in the same directory as your python file. The result file is a HDF5(H5) file containing a pandas dataframe. The index of the dataframe is the "datetime" and "instrument", and the single column name is the factor name,and the value is the factor value. The result file should be saved in the same directory as your python file.
+  
+  **CRITICAL: Pandas MultiIndex groupby().rolling() Pattern**
+  
+  When working with MultiIndexed Series (index: ['datetime', 'instrument']), you MUST use the correct pattern for rolling operations:
+  
+  ❌ WRONG - This causes "ValueError: The name instrument occurs multiple times":
+  ```python
+  # DO NOT use this pattern - it creates a 3-level index with duplicate 'instrument'
+  ma_20 = volume.groupby(level='instrument').rolling(window=20).mean()
+  result = volume / ma_20  # FAILS!
+  ```
+  
+  ✅ CORRECT - Use transform() to preserve the 2-level index structure:
+  ```python
+  # CORRECT: Use transform() with lambda to preserve index structure
+  ma_20 = volume.groupby(level='instrument').transform(lambda x: x.rolling(window=20).mean())
+  result = volume / ma_20  # Works correctly!
+  ```
+  
+  The key difference:
+  - `groupby().rolling()` returns a Series with extra index level: ['instrument', 'datetime', 'instrument']
+  - `groupby().transform(lambda x: x.rolling().mean())` preserves original index: ['datetime', 'instrument']
+  
+  For other rolling operations (sum, std, min, max, etc.), always use transform():
+  ```python
+  # Rolling standard deviation
+  rolling_std = series.groupby(level='instrument').transform(lambda x: x.rolling(window=20).std())
+  
+  # Rolling sum
+  rolling_sum = series.groupby(level='instrument').transform(lambda x: x.rolling(window=10).sum())
+  
+  # Rolling min/max
+  rolling_min = series.groupby(level='instrument').transform(lambda x: x.rolling(window=5).min())
+  ```
 
 qlib_factor_strategy: |-
   Ensure that for every step of data processing, the data format (including indexes) is clearly explained through comments.

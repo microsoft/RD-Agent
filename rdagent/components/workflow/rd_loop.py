@@ -124,7 +124,7 @@ class RDLoop(LoopBase, metaclass=LoopMeta):
             logger.info("Received user instruction response.")
             self.plan.update(res_dict)
 
-            if "feature_codes" not in self.plan:
+            if "feature_codes" in self.plan:
                 self.plan[
                     "user_instruction"
                 ] += f"\n\n{str(list(self.plan['feature_codes'].keys()))} has been configured as the base factor; do not generate duplicate factors."

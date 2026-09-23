@@ -82,12 +82,13 @@ def ds_user_interact(port=19900):
 @app.command(name="fin_factor")
 def fin_factor_cli(
     path: Optional[str] = None,
+    base_features_path: Optional[str] = None,
     step_n: Optional[int] = None,
     loop_n: Optional[int] = None,
     all_duration: Optional[str] = None,
     checkout: CheckoutOption = True,
 ):
-    fin_factor(path=path, step_n=step_n, loop_n=loop_n, all_duration=all_duration, checkout=checkout)
+    fin_factor(path=path, base_features_path=base_features_path, step_n=step_n, loop_n=loop_n, all_duration=all_duration, checkout=checkout)
 
 
 @app.command(name="fin_model")
