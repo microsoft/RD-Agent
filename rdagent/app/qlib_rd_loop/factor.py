@@ -26,6 +26,17 @@ class FactorRDLoop(RDLoop):
         logger.log_object(exp, tag="runner result")
         return exp
 
+    def _run_final_holdout(self):
+        """Evaluate the selected experiment after research has stopped."""
+        exp = self.trace.get_sota_experiment()
+        if exp is None:
+            logger.warning("No accepted factor experiment is available for final holdout evaluation.")
+            return None
+
+        result = self.runner.evaluate_holdout(exp)
+        logger.log_object(result, tag="final holdout result")
+        return result
+
 
 def main(
     path: Optional[str] = None,
@@ -35,6 +46,7 @@ def main(
     checkout: bool = True,
     checkout_path: Optional[str] = None,
     base_features_path: Optional[str] = None,
+    run_final_holdout: bool = False,
     **kwargs,
 ):
     """
@@ -60,6 +72,8 @@ def main(
         factor_loop._set_interactor(*kwargs["user_interaction_queues"])
         factor_loop._interact_init_params()
     asyncio.run(factor_loop.run(step_n=step_n, loop_n=loop_n, all_duration=all_duration))
+    if run_final_holdout:
+        factor_loop._run_final_holdout()
 
 
 if __name__ == "__main__":

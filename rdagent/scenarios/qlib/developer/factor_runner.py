@@ -60,8 +60,46 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
         IC_max = IC_max.unstack().max(axis=0)
         return new_feature.iloc[:, IC_max[IC_max < 0.99].index]
 
+    def _get_run_env(self, exp: QlibFactorExperiment, use_holdout: bool) -> dict[str, str]:
+        """Build Qlib's runtime environment for search or final holdout evaluation.
+
+        Qlib's SignalRecord and PortAnaRecord report metrics from the dataset
+        ``test`` segment. During iterative research, bind that internal
+        segment to validation so the configured test period remains unseen.
+        """
+        fbps = FactorBasePropSetting()
+        evaluation_start = fbps.test_start if use_holdout else fbps.valid_start
+        evaluation_end = fbps.test_end if use_holdout else fbps.valid_end
+        env_to_use = {
+            "PYTHONPATH": "./",
+            "train_start": fbps.train_start,
+            "train_end": fbps.train_end,
+            "valid_start": fbps.valid_start,
+            "valid_end": fbps.valid_end,
+            "test_start": evaluation_start,
+            "feature_names": str(list(exp.base_features.keys())),
+            "feature_expressions": str(list(exp.base_features.values())),
+        }
+        if evaluation_end is not None:
+            env_to_use["test_end"] = evaluation_end
+        return env_to_use
+
     @cache_with_pickle(CachedRunner.get_cache_key, CachedRunner.assign_cached_result)
     def develop(self, exp: QlibFactorExperiment) -> QlibFactorExperiment:
+        """Run one search iteration using validation-only evaluation metrics."""
+        result, stdout = self._run_experiment(exp, use_holdout=False)
+        exp.result = result
+        exp.stdout = stdout
+        return exp
+
+    def evaluate_holdout(self, exp: QlibFactorExperiment) -> pd.Series:
+        """Evaluate a frozen experiment on test without updating search state."""
+        result, stdout = self._run_experiment(exp, use_holdout=True)
+        exp.holdout_result = result
+        exp.holdout_stdout = stdout
+        return result
+
+    def _run_experiment(self, exp: QlibFactorExperiment, use_holdout: bool) -> tuple[pd.Series, str]:
         """
         Generate the experiment by processing and combining factor data,
         then passing the combined data to Docker for backtest results.
@@ -70,19 +108,7 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
             logger.info(f"Baseline experiment execution ...")
             exp.based_experiments[-1] = self.develop(exp.based_experiments[-1])
 
-        fbps = FactorBasePropSetting()
-        env_to_use = {
-            "PYTHONPATH": "./",
-            "train_start": fbps.train_start,
-            "train_end": fbps.train_end,
-            "valid_start": fbps.valid_start,
-            "valid_end": fbps.valid_end,
-            "test_start": fbps.test_start,
-            "feature_names": str(list(exp.base_features.keys())),
-            "feature_expressions": str(list(exp.base_features.values())),
-        }
-        if fbps.test_end is not None:
-            env_to_use.update({"test_end": fbps.test_end})
+        env_to_use = self._get_run_env(exp, use_holdout=use_holdout)
 
         if exp.based_experiments:
             SOTA_factor = None
@@ -196,7 +222,4 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
             logger.error(f"Failed to run this experiment, because {stdout}")
             raise FactorEmptyError(f"Failed to run this experiment, because {stdout}")
 
-        exp.result = result
-        exp.stdout = stdout
-
-        return exp
+        return result, stdout
