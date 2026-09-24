@@ -3,12 +3,12 @@ import re
 from pathlib import Path
 
 import pandas as pd
-
 from rdagent.app.data_science.conf import DS_RD_SETTING
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEEREvaluator,
     CoSTEERMultiFeedback,
     CoSTEERSingleFeedback,
+    _append_return_checking,
 )
 from rdagent.components.coder.data_science.conf import get_clear_ws_cmd, get_ds_env
 from rdagent.components.coder.data_science.utils import remove_eda_part
@@ -151,8 +151,8 @@ class WorkflowGeneralCaseSpecEvaluator(CoSTEEREvaluator):
         )
         if score_ret_code != 0:
             wfb.final_decision = False
-            wfb.return_checking += "\n" + score_check_text
+            _append_return_checking(wfb, "\n" + score_check_text)
         if submission_ret_code != 0:
             wfb.final_decision = False
-            wfb.return_checking += "\nSubmission file check failed."
+            _append_return_checking(wfb, "\nSubmission file check failed.")
         return wfb
