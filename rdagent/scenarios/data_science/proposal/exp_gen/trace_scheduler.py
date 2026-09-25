@@ -362,7 +362,8 @@ class MCTSScheduler(ProbabilisticScheduler):
             return trace.NEW_ROOT
 
         # Step 2: consider only available leaves (not being expanded)
-        available_leaves = list(set(range(len(trace.hist))))
+        leaves = trace.get_leaves()
+        available_leaves = [leaf for leaf in leaves if self.uncommited_rec_status[leaf] == 0]
         if not available_leaves:
             return None
 
