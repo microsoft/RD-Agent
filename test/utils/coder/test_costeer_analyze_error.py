@@ -17,6 +17,7 @@ EXECUTION_FEEDBACK = (
     "    x = 1 / 0\nZeroDivisionError: division by zero"
 )
 EXECUTION_ERROR = "ErrorType: ZeroDivisionError\nError line: x = 1 / 0"
+UNPARSED_FEEDBACK = "Execution timed out after 600 seconds."
 
 
 def _strategy(error_nodes: list[UndirectedNode]) -> CoSTEERRAGStrategyV2:
@@ -68,6 +69,31 @@ def test_analyze_error_keeps_parsed_order(matched_first: bool) -> None:
 
 
 @pytest.mark.offline
+@pytest.mark.parametrize("matched_first", [True, False], ids=["matched_first", "matched_last"])
+def test_analyze_error_returns_undefined_error_node_once(matched_first: bool) -> None:
+    matched = UndirectedNode(content="Undefined Error", label="error")
+    unrelated = UndirectedNode(content="A different previous error.", label="error")
+    nodes = [matched, unrelated] if matched_first else [unrelated, matched]
+
+    result = _strategy(nodes).analyze_error(UNPARSED_FEEDBACK, feedback_type="execution")
+
+    assert len(result) == 1
+    assert result[0] is matched
+
+
+@pytest.mark.offline
+@pytest.mark.parametrize("graph_order", ["parsed", "reversed"])
+def test_analyze_error_orders_matched_nodes_by_feedback(graph_order: str) -> None:
+    rows = UndirectedNode(content=ROWS_ERROR, label="error")
+    tolerance = UndirectedNode(content=TOLERANCE_ERROR, label="error")
+    nodes = [rows, tolerance] if graph_order == "parsed" else [tolerance, rows]
+
+    result = _strategy(nodes).analyze_error(f"{ROWS_ERROR}\n{TOLERANCE_ERROR}", feedback_type="value")
+
+    assert result == [rows, tolerance]
+
+
+@pytest.mark.offline
 def test_analyze_error_reports_repeated_error_once() -> None:
     matched = UndirectedNode(content=ROWS_ERROR, label="error")
     unrelated = UndirectedNode(content="A different previous error.", label="error")
@@ -76,13 +102,3 @@ def test_analyze_error_reports_repeated_error_once() -> None:
 
     assert len(result) == 1
     assert result[0] is matched
-
-
-@pytest.mark.offline
-def test_analyze_error_keeps_unmatched_error_as_string() -> None:
-    nodes = [
-        UndirectedNode(content="A different previous error.", label="error"),
-        UndirectedNode(content="Yet another previous error.", label="error"),
-    ]
-
-    assert _strategy(nodes).analyze_error(TOLERANCE_ERROR, feedback_type="value") == [TOLERANCE_ERROR]
