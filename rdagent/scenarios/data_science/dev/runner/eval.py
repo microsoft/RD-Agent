@@ -156,7 +156,7 @@ class DSRunnerEvaluator(CoSTEEREvaluator):
 
             except Exception as e:
                 logger.error(f"Error in checking the scores.csv file: {e}")
-                score_check_text += f"\n[Error] in checking the scores.csv file: {e}\nscores.csv's content:\n-----\n{score_fp.read_text()}\n-----"
+                score_check_text += f"\n[Error] in checking the scores.csv file: {e}\nscores.csv's content:\n-----\n{score_fp.read_text(encoding='utf-8', errors='replace')}\n-----"
                 score_ret_code = 1
 
         # DockerEnv for MLEBench submission validation
