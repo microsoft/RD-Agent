@@ -99,7 +99,12 @@ def extract_evoid(tag: str) -> str | None:
 def extract_json(log_content: str) -> dict | None:
     match = re.search(r"\{.*\}", log_content, re.DOTALL)
     if match:
-        return cast(dict, json.loads(match.group(0)))
+        raw = match.group(0)
+        # Normalize Python-style booleans/null that some LLM providers return
+        raw = re.sub(r"\bTrue\b", "true", raw)
+        raw = re.sub(r"\bFalse\b", "false", raw)
+        raw = re.sub(r"\bNone\b", "null", raw)
+        return cast(dict, json.loads(raw))
     return None
 
 
