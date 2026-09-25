@@ -160,6 +160,40 @@ def process_factor_data(exp_or_list: List[QlibFactorExperiment] | QlibFactorExpe
 
     # Combine all successful factor data
     if factor_dfs:
+        # Normalize MultiIndex levels: some factors may produce 3-level
+        # MultiIndex (e.g. instrument, datetime, instrument) while others
+        # use the standard 2-level (datetime, instrument). Detect and fix
+        # mismatched indices before concat to prevent AssertionError.
+        target_nlevels = None
+        for df in factor_dfs:
+            if target_nlevels is None:
+                target_nlevels = df.index.nlevels
+            elif df.index.nlevels != target_nlevels:
+                # Reindex to the most common level count (usually 2)
+                level_counts = {}
+                for d in factor_dfs:
+                    n = d.index.nlevels
+                    level_counts[n] = level_counts.get(n, 0) + 1
+                target_nlevels = max(level_counts, key=level_counts.get)
+                break
+
+        if target_nlevels is not None:
+            normalized = []
+            for df in factor_dfs:
+                if df.index.nlevels != target_nlevels:
+                    # Try to swap/reorder levels or reset extra levels
+                    if df.index.nlevels == 3 and target_nlevels == 2:
+                        # 3-level index with duplicated instrument: drop the extra level
+                        df.index = df.index.droplevel(0)
+                    elif df.index.nlevels == 2 and target_nlevels == 3:
+                        # Re-construct 3-level from 2-level is not possible without context
+                        # Just try swapping as fallback
+                        df = df.swaplevel(0, 1, axis=0)
+                    normalized.append(df)
+                else:
+                    normalized.append(df)
+            factor_dfs = normalized
+
         try:
             return pd.concat(factor_dfs, axis=1)
         except Exception as concat_error:
