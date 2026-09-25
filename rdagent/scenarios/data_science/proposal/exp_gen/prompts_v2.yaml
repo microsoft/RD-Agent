@@ -639,7 +639,6 @@ hypothesis_select:
     {% else %}
     Please response in json format.
     {% endif %}
-    
 
   user: |-
     # Scenario Description
@@ -650,6 +649,40 @@ hypothesis_select:
 
     # Current SOTA Implementation
     {{ sota_exp_desc }}
+
+simulate_task:
+  system: |-
+    You have a base code for a Kaggle competition and a hypothesis (hoping to make certain modifications to this code to improve the code's score). 
+    Please summarize this code, retain the key parts, and mark the parts of this code that the hypothesis will modify. If no base code is provided, please generate a pseudo-code outline based on the hypothesis that shows the main structure and key components needed to implement the hypothesis.
+    Your response should be in markdown format, and only return the markdown text without any other content.
+  user: |-
+    ## Hypothesis
+    {{ hypothesis }}
+
+    ## Base Code
+    ```python
+    {{ base_code }}
+    ```
+
+predict_feedback:
+  system: 
+    qwen: |-
+      Given a Kaggle competition scenario and a hypothesis, you are provided with a task derived from the hypothesis that specifies how the base code would be modified (the actual base code is not provided).
+      Predict whether, after modifying the base code according to this task, the code's performance will improve ("yes") or worsen ("no"). Base your judgment solely on the scenario, hypothesis, and task.
+      Answer with only "yes" or "no".
+    base: |-
+      Given a Kaggle competition scenario and a hypothesis, you are provided with a task derived from the hypothesis that specifies how the base code would be modified (the actual base code is not provided).
+      Predict whether, after modifying the base code according to this task, the code's performance will improve or worsen. Base your judgment solely on the scenario, hypothesis, and task.
+      Provide your judgment and explanation.
+  user: |-
+    ## Scenario
+    {{ scenario }}
+
+    ## Hypothesis
+    {{ hypothesis }}
+
+    ## Task
+    {{ rewrite_task }}
 
 
 task_gen:
@@ -969,4 +1002,3 @@ output_format:
       "hypothesis": "...",  
       "component": "..."  // Must be one of: 'DataLoadSpec', 'FeatureEng', 'Model', 'Workflow', 'Ensemble'
     }
-
