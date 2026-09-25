@@ -266,6 +266,11 @@ More details can be found in the [development setup](https://rdagent.readthedocs
 
 ### 🚀 Run the Application
 
+**Before running `fin_quant`, `fin_factor`, or `fin_model`:** prepare the daily Qlib
+dataset at `~/.qlib/qlib_data/cn_data` on the host. See the
+[Qlib data prerequisites](https://rdagent.readthedocs.io/en/latest/scens/quant_agent_fin.html#qlib-data-prerequisites)
+for the data source, Docker path mapping, setup steps, and checks for incomplete downloads.
+
 The **[🖥️ Live Demo](https://rdagent.azurewebsites.net/)** is implemented by the following commands(each item represents one demo, you can select the one you prefer):
 
 - Run the **Automated Quantitative Trading & Iterative Factors Model Joint Evolution**:  [Qlib](http://github.com/microsoft/qlib) self-loop factor & model proposal and implementation application

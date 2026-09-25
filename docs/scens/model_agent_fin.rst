@@ -85,6 +85,8 @@ Here's an enhanced outline of the steps:
 
 Please refer to the installation part in :doc:`../installation_and_configuration` to prepare your system dependency.
 
+Prepare the :ref:`qlib-data-prerequisites` before running ``rdagent fin_model``.
+
 You can try our demo by running the following command:
 
 - 🐍 Create a Conda Environment
