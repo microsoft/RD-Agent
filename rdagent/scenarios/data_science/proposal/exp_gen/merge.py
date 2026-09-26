@@ -262,14 +262,12 @@ class ExpGen2TraceAndMerge(ExpGen):
             trace.set_current_selection(selection)
             return self.exp_gen.gen(trace)
         else:
-            # disable reset in merging stage
-            DS_RD_SETTING.coding_fail_reanalyze_threshold = 100000
-            DS_RD_SETTING.consecutive_errors = 100000
-
             if trace.sub_trace_count < 2:
-                return self.exp_gen.gen(trace)
+                exp = self.exp_gen.gen(trace)
             else:
-                return self.merge_exp_gen.gen(trace)
+                exp = self.merge_exp_gen.gen(trace)
+            exp.set_merge_phase()
+            return exp
 
 
 class MergeExpGen_MultiTrace(ExpGen):
@@ -392,23 +390,21 @@ class ExpGen2TraceAndMergeV2(ExpGen):
             return self.exp_gen.gen(trace)
 
         else:
-            # disable reset in merging stage
-            DS_RD_SETTING.coding_fail_reanalyze_threshold = 100000
-            DS_RD_SETTING.consecutive_errors = 100000
-
             leaves: list[int] = trace.get_leaves()
             if len(leaves) < 2:
                 trace.set_current_selection(selection=(-1,))
-                return self.exp_gen.gen(trace)
+                exp = self.exp_gen.gen(trace)
             else:
                 if not self.flag_start_merge:  # root node of the merge trace
                     self.flag_start_merge = True
                     trace.set_current_selection(trace.NEW_ROOT)
-                    return self.merge_exp_gen.gen(trace)
+                    exp = self.merge_exp_gen.gen(trace)
                 else:
                     # return self.merge_exp_gen.gen(trace)
                     trace.set_current_selection(selection=(-1,))
-                    return self.exp_gen.gen(trace)  # continue the last trace, to polish the merged solution
+                    exp = self.exp_gen.gen(trace)  # continue the last trace, to polish the merged solution
+            exp.set_merge_phase()
+            return exp
 
 
 class ExpGen2TraceAndMergeV3(ExpGen):
@@ -428,14 +424,10 @@ class ExpGen2TraceAndMergeV3(ExpGen):
         if timer.remain_time() >= timedelta(hours=DS_RD_SETTING.merge_hours):
             return self.exp_gen.gen(trace)
         else:
-            # disable reset in merging stage
-            DS_RD_SETTING.coding_fail_reanalyze_threshold = 100000
-            DS_RD_SETTING.consecutive_errors = 100000
-
             leaves: list[int] = trace.get_leaves()
             if len(leaves) < 2:
                 trace.set_current_selection(selection=(-1,))
-                return self.exp_gen.gen(trace)
+                exp = self.exp_gen.gen(trace)
             else:
                 selection = (leaves[0],)
                 if trace.sota_exp_to_submit is not None:
@@ -444,4 +436,6 @@ class ExpGen2TraceAndMergeV3(ExpGen):
                             selection = (leaves[i],)
                             break
                 trace.set_current_selection(selection)
-                return self.merge_exp_gen.gen(trace)
+                exp = self.merge_exp_gen.gen(trace)
+            exp.set_merge_phase()
+            return exp

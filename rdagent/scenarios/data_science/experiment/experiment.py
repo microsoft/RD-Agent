@@ -9,6 +9,8 @@ COMPONENT = Literal["DataLoadSpec", "FeatureEng", "Model", "Ensemble", "Workflow
 
 
 class DSExperiment(Experiment[Task, FBWorkspace, FBWorkspace]):
+    is_merge_phase: bool = False
+
     def __init__(self, pending_tasks_list: list, hypothesis_candidates: list | None = None, *args, **kwargs) -> None:
         super().__init__(sub_tasks=[], *args, **kwargs)
         # Status
@@ -41,3 +43,6 @@ class DSExperiment(Experiment[Task, FBWorkspace, FBWorkspace]):
 
     def set_local_selection(self, local_selection: tuple[int, ...]) -> None:
         self.local_selection = local_selection
+
+    def set_merge_phase(self) -> None:
+        self.is_merge_phase = True
