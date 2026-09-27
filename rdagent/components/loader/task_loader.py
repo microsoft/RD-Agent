@@ -47,7 +47,8 @@ class ModelTaskLoaderJson(ModelTaskLoader):
 
     def load(self, *argT, **kwargs) -> Sequence[ModelTask]:
         # json is supposed to be in the format of {model_name: dict{model_data}}
-        model_dict = json.load(open(self.json_uri, "r"))
+        with open(self.json_uri, "r", encoding="utf-8") as f:
+            model_dict = json.load(f)
         # FIXME: the model in the json file is not right due to extraction error
         #       We should fix them case by case in the future
         #
