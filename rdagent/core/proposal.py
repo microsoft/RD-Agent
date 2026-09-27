@@ -69,7 +69,7 @@ class ExperimentFeedback(Feedback):
         self.eda_improvement = eda_improvement
         self.reason = reason
         # Exception is not None means failing to generate runnable experiments due to exception.
-        # Runable reuslts are not always good.
+        # Runnable results are not always good.
         self.exception: Exception | None = (
             exception  # if the experiment raises exception, it will be integrated into part of the feedback.
         )
@@ -165,7 +165,7 @@ class Trace(Generic[ASpecificScen, ASpecificKB]):
         self.idx2loop_id: dict[int, int] = {}
 
         # Design discussion:
-        # - If we unifiy the loop_id and the enqueue id, we will have less recognition burden.
+        # - If we unify the loop_id and the enqueue id, we will have less recognition burden.
         # - If we use different id for loop and enqueue, we don't have to handle the placeholder logic.
         # END: graph structure -------------------------
 

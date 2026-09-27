@@ -151,7 +151,7 @@ class RAGEvoAgent(EvoAgent[RAGEvaluator, ASpecificEvolvableSubjects], Generic[AS
                     queried_knowledge = self.rag.query(evo, self.evolving_trace)
 
                 # 2. evolve:
-                # A compelete solution of an evo can be break down into multiple evolving steps.
+                # A complete solution of an evo can be broken down into multiple evolving steps.
                 # Each evolving step can be evaluated separately.
                 # Assumptions:
                 # - if we want to stop on some point of the implementation, we must have a according evaluator (Otherwise, It is meaningless to stop)
