@@ -7,6 +7,7 @@ import multiprocessing as mp
 import pickle
 import random
 from collections.abc import Callable
+from contextlib import nullcontext
 from pathlib import Path
 from typing import Any, ClassVar, NoReturn, cast
 
@@ -192,27 +193,24 @@ def cache_with_pickle(hash_func: Callable, post_process_func: Callable | None = 
             cache_file = target_folder / f"{hash_key}.pkl"
             lock_file = target_folder / f"{hash_key}.lock"
 
-            if cache_file.exists():
-                try:
-                    with cache_file.open("rb") as f:
-                        cached_res = secure_pickle_load(f)
-                except UntrustedArtifactError:
-                    cache_file.unlink(missing_ok=True)
-                else:
-                    return (
-                        post_process_func(*args, cached_res=cached_res, **kwargs) if post_process_func else cached_res
-                    )
+            cache_hit = False
+            result = None
+            with FileLock(lock_file) if RD_AGENT_SETTINGS.use_file_lock else nullcontext():
+                if cache_file.exists():
+                    try:
+                        with cache_file.open("rb") as f:
+                            result = secure_pickle_load(f)
+                    except UntrustedArtifactError:
+                        cache_file.unlink(missing_ok=True)
+                    else:
+                        cache_hit = True
 
-            if RD_AGENT_SETTINGS.use_file_lock:
-                with FileLock(lock_file):
+                if not cache_hit:
                     result = func(*args, **kwargs)
-            else:
-                result = func(*args, **kwargs)
+                    with cache_file.open("wb") as f:
+                        secure_pickle_dump(result, f)
 
-            with cache_file.open("wb") as f:
-                secure_pickle_dump(result, f)
-
-            return result
+            return post_process_func(*args, cached_res=result, **kwargs) if cache_hit and post_process_func else result
 
         return cache_wrapper
 
