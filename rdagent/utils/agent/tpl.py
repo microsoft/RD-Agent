@@ -72,7 +72,13 @@ def load_content(uri: str, caller_dir: Path | None = None, ftype: str = "yaml") 
                     yaml_content = yaml_content[key]
                 return yaml_content
 
-            return file_path.read_text()
+            # Force UTF-8 so non-YAML templates (.md, .txt, .py, ...) decode
+            # consistently across platforms. Without an explicit encoding,
+            # ``Path.read_text`` falls back to ``locale.getpreferredencoding``,
+            # which is ``cp1252`` / ``gbk`` / etc on non-UTF-8 Windows hosts
+            # and raises ``UnicodeDecodeError`` on any non-ASCII byte the
+            # template happens to carry. Reported in issue #939.
+            return file_path.read_text(encoding="utf-8")
         except FileNotFoundError:
             continue  # the file does not exist, so goto the next loop.
         except KeyError:
