@@ -12,6 +12,7 @@ from litellm import (
     token_counter,
 )
 from litellm.exceptions import BadRequestError, Timeout
+from litellm.utils import get_llm_provider
 from pydantic import BaseModel
 
 from rdagent.log import LogColors
@@ -45,12 +46,44 @@ LITELLM_SETTINGS = LiteLLMSettings()
 ACC_COST = 0.0
 
 
+def _validate_litellm_model_provider(model: str, setting_env_var: str) -> None:
+    """Validate that ``model`` resolves to a LiteLLM provider before any
+    completion / embedding call is attempted.
+
+    LiteLLM uses a ``<provider>/<model>`` naming convention; for bare names it
+    cannot disambiguate it falls back to the OpenAI provider, and for names
+    it does not recognise (e.g. ``deepseek-chat``, ``qwen2:7b``) it raises
+    ``BadRequestError: LLM Provider NOT provided``. That error surfaces from
+    deep inside the retry loop with no actionable hint, which is the bug
+    reported in #1016. By calling ``get_llm_provider`` at backend
+    construction, the misconfiguration is caught before any HTTP call with a
+    clear message that points at the env-var fix.
+    """
+    try:
+        get_llm_provider(model)
+    except BadRequestError as e:
+        raise RuntimeError(
+            f"Could not determine the LiteLLM provider for "
+            f"{setting_env_var}={model!r}.\n"
+            f"LiteLLM uses a '<provider>/<model>' naming convention. "
+            f"Update the model name to include the provider prefix, for example:\n"
+            f"  CHAT_MODEL=openai/gpt-4o\n"
+            f"  CHAT_MODEL=deepseek/deepseek-chat\n"
+            f"  CHAT_MODEL=ollama/qwen2:7b\n"
+            f"  EMBEDDING_MODEL=ollama/nomic-embed-text\n"
+            f"See https://docs.litellm.ai/docs/providers for the full list "
+            f"of supported provider prefixes."
+        ) from e
+
+
 class LiteLLMAPIBackend(APIBackend):
     """LiteLLM implementation of APIBackend interface"""
 
     _has_logged_settings: bool = False
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
+        _validate_litellm_model_provider(LITELLM_SETTINGS.chat_model, "CHAT_MODEL")
+        _validate_litellm_model_provider(LITELLM_SETTINGS.embedding_model, "EMBEDDING_MODEL")
         if not self.__class__._has_logged_settings:
             logger.info(f"{LITELLM_SETTINGS}")
             logger.log_object(LITELLM_SETTINGS.model_dump(), tag="LITELLM_SETTINGS")
