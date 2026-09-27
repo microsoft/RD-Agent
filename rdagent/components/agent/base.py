@@ -4,8 +4,8 @@ import nest_asyncio
 from prefect import task
 from prefect.cache_policies import INPUTS
 from pydantic_ai import Agent
-from pydantic_ai.mcp import MCPServerStreamableHTTP
 
+from rdagent.components.agent.mcp_compat import MCPServerHTTP
 from rdagent.oai.backend.pydantic_ai import get_agent_model
 
 
@@ -29,7 +29,7 @@ class PAIAgent(BaseAgent):
     def __init__(
         self,
         system_prompt: str,
-        toolsets: list[str | MCPServerStreamableHTTP],
+        toolsets: list[str | MCPServerHTTP],
         enable_cache: bool = False,
     ):
         """
@@ -39,13 +39,13 @@ class PAIAgent(BaseAgent):
         ----------
         system_prompt : str
             System prompt for the agent
-        toolsets : list[str | MCPServerStreamableHTTP]
+        toolsets : list[str | MCPServerHTTP]
             List of MCP server URLs or instances
         enable_cache : bool
             Enable persistent caching via Prefect. Requires Prefect server:
             `prefect server start` then set PREFECT_API_URL in environment
         """
-        toolsets = [(ts if isinstance(ts, MCPServerStreamableHTTP) else MCPServerStreamableHTTP(ts)) for ts in toolsets]
+        toolsets = [(ts if isinstance(ts, MCPServerHTTP) else MCPServerHTTP(ts)) for ts in toolsets]
         self.agent = Agent(get_agent_model(), system_prompt=system_prompt, toolsets=toolsets)
         self.enable_cache = enable_cache
 
