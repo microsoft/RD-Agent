@@ -108,15 +108,14 @@ class QlibFactorHypothesis2Experiment(FactorHypothesis2Experiment):
                 )
             )
 
-        exp = QlibFactorExperiment(tasks, hypothesis=hypothesis)
-        exp.based_experiments = [QlibFactorExperiment(sub_tasks=[])] + [
+        based_experiments = [QlibFactorExperiment(sub_tasks=[])] + [
             t[0] for t in trace.hist if t[1] and isinstance(t[0], FactorExperiment)
         ]
 
         unique_tasks = []
         for task in tasks:
             duplicate = False
-            for based_exp in exp.based_experiments:
+            for based_exp in based_experiments:
                 if isinstance(based_exp, QlibModelExperiment):
                     continue
                 for sub_task in based_exp.sub_tasks:
@@ -128,5 +127,4 @@ class QlibFactorHypothesis2Experiment(FactorHypothesis2Experiment):
             if not duplicate:
                 unique_tasks.append(task)
 
-        exp.tasks = unique_tasks
-        return exp
+        return QlibFactorExperiment(unique_tasks, hypothesis=hypothesis, based_experiments=based_experiments)
