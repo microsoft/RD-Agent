@@ -157,17 +157,6 @@ class QlibModelExperiment2Feedback(Experiment2Feedback):
         )
 
         # Call the APIBackend to generate the response for hypothesis feedback
-        response = APIBackend().build_messages_and_create_chat_completion(
-            user_prompt=user_prompt,
-            system_prompt=sys_prompt,
-            json_mode=True,
-            json_target_type=Dict[str, str | bool | int],
-        )
-
-        # Parse the JSON response to extract the feedback
-        response_json_hypothesis = json.loads(response)
-
-        # Call the APIBackend to generate the response for hypothesis feedback
         response_hypothesis = APIBackend().build_messages_and_create_chat_completion(
             user_prompt=user_prompt,
             system_prompt=sys_prompt,
