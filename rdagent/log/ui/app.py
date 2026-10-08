@@ -583,6 +583,18 @@ def research_window():
                     tasks_window(me.sub_tasks)
 
 
+def latest_backtest_chart(chart_msgs: list[Message]) -> Message:
+    """Pick the backtest chart to display for a round.
+
+    ``FileStorage.iter_msg`` yields messages ordered by timestamp, so the last entry is
+    the most recent one. A round can hold more than one chart: the baseline experiment is
+    executed before the factors of the round are applied, and for loop 0 it is logged
+    under the same tag as the round itself. Taking the last entry shows the round's own
+    result instead of that baseline run.
+    """
+    return chart_msgs[-1]
+
+
 def feedback_window():
     # st.write(round)
     # # Check if metric series exists and has the matching round
@@ -638,7 +650,7 @@ def feedback_window():
             if fb := state.msgs[round]["feedback"]:
                 if fbr := state.msgs[round]["Quantitative Backtesting Chart"]:
                     st.markdown("**Returns📈**")
-                    fig = report_figure(fbr[0].content)
+                    fig = report_figure(latest_backtest_chart(fbr).content)
                     st.plotly_chart(fig)
                 st.markdown("**Hypothesis Feedback🔍**")
                 h: HypothesisFeedback = fb[0].content
