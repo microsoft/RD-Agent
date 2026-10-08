@@ -519,13 +519,11 @@ class CoSTEERRAGStrategyV2(CoSTEERRAGStrategy):
         else:
             error_list = []
             for error_content in error_contents:
-                for error_node in all_error_nodes:
-                    if error_content == error_node.content:
-                        error_list.append(error_node)
-                    else:
-                        error_list.append(error_content)
-                    if error_list[-1] in error_list[:-1]:
-                        error_list.pop()
+                matched_node = next(
+                    (error_node for error_node in all_error_nodes if error_node.content == error_content),
+                    None,
+                )
+                error_list.append(matched_node if matched_node is not None else error_content)
 
             return error_list
 
@@ -828,7 +826,7 @@ class CoSTEERRAGStrategyV2(CoSTEERRAGStrategy):
                             ]
                             error_content = ""
                             for index, error_node in enumerate(error_node_list):
-                                error_content += f"{index+1}. {error_node.content}; "
+                                error_content += f"{index + 1}. {error_node.content}; "
                             same_error_success_knowledge_pair_list.append(
                                 (
                                     error_content,
