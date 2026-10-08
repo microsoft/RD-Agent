@@ -96,6 +96,13 @@ class CoSTEER(Developer[Experiment]):
         max_seconds = self.get_develop_max_seconds()
         evo_exp = EvolvingItem.from_experiment(exp)
 
+        # A new evolving history starts from scratch here, so the progress marker of the
+        # knowledge base has to follow. Otherwise `generate_knowledge` sees the count left
+        # over from the previous `develop` call and skips the first step of the new trace,
+        # which keeps successfully implemented tasks out of the knowledge base and makes
+        # them be implemented again in later rounds. The knowledge base itself is kept.
+        self.rag.current_generated_trace_count = 0
+
         self.evolve_agent = RAGEvoAgent[EvolvingItem](
             max_loop=self.max_loop,
             evolving_strategy=self.evolving_strategy,
