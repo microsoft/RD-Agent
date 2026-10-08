@@ -1544,8 +1544,8 @@ class DockerEnv(Env[DockerConf]):
 class QTDockerEnv(DockerEnv):
     """Qlib Torch Docker"""
 
-    def __init__(self, conf: DockerConf = QlibDockerConf()):
-        super().__init__(conf)
+    def __init__(self, conf: DockerConf | None = None):
+        super().__init__(QlibDockerConf() if conf is None else conf)
 
     def prepare(self, *args, **kwargs) -> None:  # type: ignore[no-untyped-def]
         """
@@ -1564,15 +1564,15 @@ class QTDockerEnv(DockerEnv):
 class KGDockerEnv(DockerEnv):
     """Kaggle Competition Docker"""
 
-    def __init__(self, competition: str | None = None, conf: DockerConf = KGDockerConf()):
-        super().__init__(conf)
+    def __init__(self, competition: str | None = None, conf: DockerConf | None = None):
+        super().__init__(KGDockerConf() if conf is None else conf)
 
 
 class MLEBDockerEnv(DockerEnv):
     """MLEBench Docker"""
 
-    def __init__(self, conf: DockerConf = MLEBDockerConf()):
-        super().__init__(conf)
+    def __init__(self, conf: DockerConf | None = None):
+        super().__init__(MLEBDockerConf() if conf is None else conf)
 
 
 class FTDockerEnv(DockerEnv):
@@ -1588,8 +1588,8 @@ class FTDockerEnv(DockerEnv):
         export FT_DOCKER_save_logs_to_file=false # disable log file
     """
 
-    def __init__(self, conf: DockerConf = FTDockerConf()):
-        super().__init__(conf)
+    def __init__(self, conf: DockerConf | None = None):
+        super().__init__(FTDockerConf() if conf is None else conf)
 
 
 class BenchmarkDockerEnv(DockerEnv):
@@ -1606,5 +1606,5 @@ class BenchmarkDockerEnv(DockerEnv):
         export BENCHMARK_DOCKER_terminal_tail_lines=100  # show last 100 lines
     """
 
-    def __init__(self, conf: DockerConf = BenchmarkDockerConf()):
-        super().__init__(conf)
+    def __init__(self, conf: DockerConf | None = None):
+        super().__init__(BenchmarkDockerConf() if conf is None else conf)
