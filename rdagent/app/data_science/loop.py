@@ -56,7 +56,7 @@ def main(
     .. code-block:: bash
 
       dotenv run -- python rdagent/app/data_science/loop.py [--competition titanic] $LOG_PATH/__session__/1/0_propose  --step_n 1   # `step_n` is an optional parameter
-      rdagent kaggle --competition playground-series-s4e8  # This command is recommended.
+      rdagent data_science --competition playground-series-s4e8  # This command is recommended.
     """
     if not checkout_path is None:
         checkout = Path(checkout_path)
