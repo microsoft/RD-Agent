@@ -126,11 +126,12 @@ class DSTrace(Trace[DataScienceScen, KnowledgeBase]):
             if self.dag_parent[idx] == self.NEW_ROOT:
                 continue
             for parent in self.dag_parent[idx]:
-                touched_node_set.remove(parent)
+                # a parent with more than one child was already removed by an earlier child
+                touched_node_set.discard(parent)
         for loop_idx, exp in self.uncommitted_experiments.items():
             sibling_exps.append(exp)
             if (exp_parent_idx := exp.local_selection[0] if exp.local_selection != self.NEW_ROOT else None) is not None:
-                touched_node_set.remove(exp_parent_idx)
+                touched_node_set.discard(exp_parent_idx)
         for idx in touched_node_set:
             if idx not in ignore_leaf_idx:
                 sibling_exps.append(self.hist[idx][0])
