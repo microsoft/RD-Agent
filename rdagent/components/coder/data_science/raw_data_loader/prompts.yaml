@@ -291,7 +291,7 @@ data_loader_coder:
       === Start of EDA part ===
       { You EDA output content }
       === End of EDA part ===
-      User will use the following code to match: re.search(r"(.*?)=== Start of EDA part ===(.*)=== End of EDA part ===", stdout, re.DOTALL).groups()[1]
+      User will use the following code to match: "\n".join(re.findall(r"=== Start of EDA part ===(.*?)=== End of EDA part ===", stdout, re.DOTALL))
     - An evaluation agent will help to check whether the EDA part is added correctly.
     - During the EDA part, you should try to avoid any irrelevant information sending to the standard output.
 
@@ -366,7 +366,7 @@ data_loader_eval:
       === Start of EDA part ===
       { You EDA output content }
       === End of EDA part ===
-      User will use the following code to match: re.search(r"(.*?)=== Start of EDA part ===(.*)=== End of EDA part ===", stdout, re.DOTALL).groups()[1]
+      User will use the following code to match: "\n".join(re.findall(r"=== Start of EDA part ===(.*?)=== End of EDA part ===", stdout, re.DOTALL))
     - The EDA part should include but not limited in the following information in plain text:
       - The shape of the data.
       - The first 5 rows of the data.

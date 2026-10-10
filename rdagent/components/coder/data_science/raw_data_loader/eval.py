@@ -1,7 +1,6 @@
 # tess successfully running.
 # (GPT) if it aligns with the spec & rationality of the spec.
 import json
-import re
 from pathlib import Path
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
@@ -13,7 +12,10 @@ from rdagent.components.coder.CoSTEER.knowledge_management import (
     CoSTEERQueriedKnowledgeV2,
 )
 from rdagent.components.coder.data_science.conf import get_ds_env
-from rdagent.components.coder.data_science.utils import remove_eda_part
+from rdagent.components.coder.data_science.utils import (
+    extract_eda_parts,
+    remove_eda_part,
+)
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.utils.agent.tpl import T
 from rdagent.utils.agent.workflow import build_cls_from_json_with_retry
@@ -58,9 +60,9 @@ class DataLoaderCoSTEEREvaluator(CoSTEEREvaluator):
         result = implementation.run(env=env, entry=f"python {fname}")
         stdout = result.stdout
         ret_code = result.exit_code
-        match = re.search(r"(.*?)=== Start of EDA part ===(.*)=== End of EDA part ===(.*)", stdout, re.DOTALL)
-        stdout_part_1, eda_output, stdout_part_2 = match.groups() if match else (stdout, None, "")
-        stdout = stdout_part_1 + stdout_part_2
+        eda_parts = extract_eda_parts(stdout)
+        eda_output = "\n".join(eda_parts) if eda_parts else None
+        stdout = remove_eda_part(stdout)
         if eda_output is not None and len(eda_output.split(" ")) > 10000:
             eda_output += "Length of EDA output is too long, truncated. Please reject this implementation and motivate it to reduce the length of EDA output."
 

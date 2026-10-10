@@ -22,7 +22,6 @@ File structure
     - Each coder could be tested.
 """
 
-import re
 from pathlib import Path
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
@@ -45,6 +44,7 @@ from rdagent.components.coder.data_science.raw_data_loader.eval import (
 )
 from rdagent.components.coder.data_science.raw_data_loader.exp import DataLoaderTask
 from rdagent.components.coder.data_science.share.ds_costeer import DSCoSTEER
+from rdagent.components.coder.data_science.utils import extract_eda_parts
 from rdagent.core.exception import CoderError
 from rdagent.core.experiment import FBWorkspace
 from rdagent.core.scenario import Scenario
@@ -232,8 +232,8 @@ class DataLoaderCoSTEER(DSCoSTEER):
         )
 
         stdout = new_exp.experiment_workspace.execute(env=env, entry=f"python test/data_loader_test.py")
-        match = re.search(r"(.*?)=== Start of EDA part ===(.*)=== End of EDA part ===", stdout, re.DOTALL)
-        eda_output = match.groups()[1] if match else None
+        eda_parts = extract_eda_parts(stdout)
+        eda_output = "\n".join(eda_parts) if eda_parts else None
         if eda_output is not None:
             new_exp.experiment_workspace.inject_files(**{"EDA.md": eda_output})
         else:
