@@ -117,7 +117,6 @@ def main(path=None, step_n=None, competition=None):
     You can continue running session by
     .. code-block:: bash
         dotenv run -- python rdagent/app/kaggle/loop.py [--competition titanic] $LOG_PATH/__session__/1/0_propose  --step_n 1   # `step_n` is a optional parameter
-        rdagent kaggle --competition playground-series-s4e8  # You are encouraged to use this one.
     """
     if competition:
         KAGGLE_IMPLEMENT_SETTING.competition = competition
