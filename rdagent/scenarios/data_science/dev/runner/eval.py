@@ -12,7 +12,10 @@ from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEERSingleFeedback,
 )
 from rdagent.components.coder.data_science.conf import get_clear_ws_cmd, get_ds_env
-from rdagent.components.coder.data_science.utils import remove_eda_part
+from rdagent.components.coder.data_science.utils import (
+    extract_eda_parts,
+    remove_eda_part,
+)
 from rdagent.core.evolving_framework import QueriedKnowledge
 from rdagent.core.experiment import FBWorkspace, Task
 from rdagent.log import rdagent_logger as logger
@@ -104,8 +107,8 @@ class DSRunnerEvaluator(CoSTEEREvaluator):
         execute_ret_code = result.exit_code
         implementation.running_info.running_time = result.running_time
 
-        match = re.search(r"(.*?)=== Start of EDA part ===(.*)=== End of EDA part ===", stdout, re.DOTALL)
-        eda_output = match.groups()[1] if match else None
+        eda_parts = extract_eda_parts(stdout)
+        eda_output = "\n".join(eda_parts) if eda_parts else None
         if eda_output is None:
             eda_output = "No EDA output."
         implementation.inject_files(
