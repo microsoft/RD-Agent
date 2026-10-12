@@ -58,7 +58,7 @@ Here is an example of this data format:
 
 Ensure the data is placed in the ``FACTOR_COSTEER_SETTINGS.data_folder_debug``. The data files should be in ``.h5`` or ``.md`` format and must not be stored in any subfolders. LLM-Agents will review the file content and implement the tasks.
 
-.. TODO: Add a script to automatically generate the data in the `rdagent/app/quant_factor_benchmark/data` folder.
+.. TODO: Add a script to automatically generate the data in the `FACTOR_COSTEER_SETTINGS.data_folder_debug` folder.
 
 Run Benchmark
 -------------
@@ -76,13 +76,13 @@ Show Result
 -------------
 .. _show:
 
-The ``analysis.py`` script reads data from the pkl file and converts it to an image. Modify the Python code in ``rdagent/app/quant_factor_benchmark/analysis.py`` to specify the path to the pkl file and the output path for the png file.
+The ``analysis.py`` script reads data from the pkl file and converts it to an image. Pass the path to the pkl file as the first argument, as shown below (or as ``--path``).
 
 .. code-block:: Properties
 
       dotenv run -- python rdagent/app/benchmark/factor/analysis.py <log/path to.pkl>
 
-A png file will be saved to the designated path as shown below.
+A png file named ``comparison_plot.png`` will be saved in the current working directory as shown below.
 
 .. image:: ../_static/benchmark.png
 
