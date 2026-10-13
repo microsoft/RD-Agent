@@ -19,8 +19,9 @@ sub = (
     .swaplevel()
 )
 # Some instruments in the all-time data were delisted before 2018 and are absent from the subset.
-target = data.reset_index()["instrument"].unique()[:100]
-target = [i for i in target if i in set(sub.reset_index()["instrument"].unique())]
+# Filter before capping so delisted names don't shrink the debug file below 100 instruments.
+present = set(sub.index.get_level_values("instrument"))
+target = [i for i in data.index.get_level_values("instrument").unique() if i in present][:100]
 data = sub.loc[target].swaplevel().sort_index()
 
 data.to_hdf("./daily_pv_debug.h5", key="data")
