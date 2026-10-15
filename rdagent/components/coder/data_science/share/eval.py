@@ -124,7 +124,16 @@ class ModelDumpEvaluator(CoSTEEREvaluator):
                 )
 
         # Check if scores contain NaN (values)
-        score_df = pd.read_csv((implementation.workspace_path / "scores.csv"), index_col=0)
+        try:
+            score_df = pd.read_csv((implementation.workspace_path / "scores.csv"), index_col=0)
+        except pd.errors.EmptyDataError:
+            err_msg = "[Error] scores.csv is empty and cannot be parsed."
+            return CoSTEERSingleFeedback(
+                execution=err_msg,
+                return_checking=err_msg,
+                code=err_msg,
+                final_decision=False,
+            )
         if score_df.isnull().values.any():
             nan_locations = score_df[score_df.isnull().any(axis=1)]
             err_msg = f"\n[Error] The scores dataframe contains NaN values at the following locations:\n{nan_locations}"
