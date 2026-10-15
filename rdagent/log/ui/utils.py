@@ -1102,7 +1102,7 @@ def compare(
     if select_best:
 
         def apply_func(cdf: pd.DataFrame):
-            cp = cdf["Competition"].values[0]
+            cp = cdf.name  # pandas 3 drops the grouping column from each group
             md = get_metric_direction(cp)
             # If SOTA Exp Score (valid, to_submit) column is empty, return the first index
             if cdf["SOTA Exp Score (valid, to_submit)"].dropna().empty:
@@ -1119,7 +1119,7 @@ def compare(
     typer.secho(f"Summary keys: {list(summary.keys())}", fg=typer.colors.CYAN)
     typer.secho("Summary DataFrame:", fg=typer.colors.MAGENTA)
     typer.secho(str(base_df), fg=typer.colors.YELLOW)
-    base_df.to_hdf(output, "data")
+    base_df.to_hdf(output, key="data")
     typer.secho(f"Summary saved to {output}", fg=typer.colors.GREEN)
 
 
