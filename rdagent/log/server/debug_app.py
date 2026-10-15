@@ -123,21 +123,39 @@ def upload_file():
     return jsonify({"id": id}), 200
 
 
+def _validate_message_entry(entry: object) -> tuple[str, dict]:
+    """Validate a single message entry and return its ``(id, msg)`` pair.
+
+    Raises ``ValueError`` if ``entry`` is not a well-formed ``{"id": ..., "msg": {...}}`` object.
+    """
+    if not isinstance(entry, dict):
+        raise ValueError("Each message entry must be a JSON object")
+    entry_id = entry.get("id")
+    msg = entry.get("msg")
+    if entry_id is None or not isinstance(msg, dict):
+        raise ValueError("Each message entry requires a non-null 'id' and an object 'msg'")
+    return entry_id, msg
+
+
 @app.route("/receive", methods=["POST"])
 def receive_msgs():
-    try:
-        data = request.get_json()
-        app.logger.info(data["msg"]["tag"])
-        if not data:
-            return jsonify({"error": "No JSON data received"}), 400
-    except Exception as e:
-        return jsonify({"error": "Internal Server Error"}), 500
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({"error": "No JSON data received"}), 400
 
-    if isinstance(data, list):
-        for d in data:
-            msgs_for_frontend[d["id"]].append(d["msg"])
-    else:
-        msgs_for_frontend[data["id"]].append(data["msg"])
+    # Accept either a single message object or a list of message objects.
+    entries = data if isinstance(data, list) else [data]
+
+    try:
+        validated = [_validate_message_entry(entry) for entry in entries]
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+    # Logging and mutation happen only after every entry in the payload has been
+    # validated, so a malformed payload can never partially mutate shared state.
+    for entry_id, msg in validated:
+        app.logger.info(msg.get("tag"))
+        msgs_for_frontend[entry_id].append(msg)
 
     return jsonify({"status": "success"}), 200
 
