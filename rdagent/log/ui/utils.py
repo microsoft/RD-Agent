@@ -1119,7 +1119,7 @@ def compare(
     typer.secho(f"Summary keys: {list(summary.keys())}", fg=typer.colors.CYAN)
     typer.secho("Summary DataFrame:", fg=typer.colors.MAGENTA)
     typer.secho(str(base_df), fg=typer.colors.YELLOW)
-    base_df.to_hdf(output, "data")
+    base_df.to_hdf(output, key="data")
     typer.secho(f"Summary saved to {output}", fg=typer.colors.GREEN)
 
 

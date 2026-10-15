@@ -19,9 +19,12 @@ def test_compare_select_best_keeps_best_row_per_competition(monkeypatch, tmp_pat
     saved = []
     monkeypatch.setattr(utils, "get_summary_df", lambda log_folders, hours: (summary, base_df))
     monkeypatch.setattr(utils, "get_metric_direction", lambda competition: competition == "comp-a")
-    monkeypatch.setattr(pd.DataFrame, "to_hdf", lambda self, *args, **kwargs: saved.append(self))
+    # pandas 3 makes every to_hdf argument after path_or_buf keyword-only.
+    monkeypatch.setattr(pd.DataFrame, "to_hdf", lambda self, path_or_buf, *, key, **kwargs: saved.append((self, key)))
 
     utils.compare(exp_list=["exp"], output=str(tmp_path / "out.h5"), hours=None, select_best=True)
 
     # comp-a: higher is better -> a-2; comp-b: lower is better -> b-2
-    assert sorted(saved[0].index) == ["a-2", "b-2"]
+    best_df, key = saved[0]
+    assert sorted(best_df.index) == ["a-2", "b-2"]
+    assert key == "data"
