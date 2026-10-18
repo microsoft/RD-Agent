@@ -8,7 +8,7 @@ from pathlib import Path
 import pandas as pd
 
 from rdagent.app.data_science.conf import DS_RD_SETTING
-from rdagent.components.agent.context7 import Agent as DocAgent
+from rdagent.components.agent.documentation import add_documentation_reference
 from rdagent.components.coder.CoSTEER import CoSTEERMultiFeedback
 from rdagent.components.coder.CoSTEER.evaluators import (
     CoSTEEREvaluator,
@@ -303,33 +303,11 @@ class PipelineCoSTEEREvaluator(CoSTEEREvaluator):
             init_kwargs_update_func=PipelineSingleFeedback.val_and_update_init_dict,
         )
 
-        # judge whether we should perform documentation search
-        do_documentation_search = enable_mcp_documentation_search and wfb.requires_documentation_search
-
-        if do_documentation_search:
-            # Use MCPAgent for clean, user-friendly interface
-            try:
-                # Create agent targeting Context7 service - model config comes from mcp_config.json
-                doc_agent = DocAgent()
-
-                # Synchronous query - perfect for evaluation context
-                if wfb.error_message:  # Type safety check
-                    context7_result = doc_agent.query(query=wfb.error_message)
-
-                    if context7_result:
-                        logger.info("Context7: Documentation search completed successfully")
-                        wfb.error_message += f"\n\n### API Documentation Reference:\nThe following API documentation was retrieved based on the error. This provides factual information about API changes or parameter specifications only:\n\n{context7_result}"
-                    else:
-                        logger.warning("Context7: Documentation search failed or no results found")
-                else:
-                    logger.warning("Context7: No error message to search for")
-
-            # TODO: confirm what exception will be raised when timeout
-            # except concurrent.futures.TimeoutError:
-            #     logger.error("Context7: Query timed out after 180 seconds")
-            except Exception as e:
-                error_msg = str(e) if str(e) else type(e).__name__
-                logger.error(f"Context7: Query failed - {error_msg}")
+        wfb.error_message = add_documentation_reference(
+            wfb.error_message,
+            enabled=enable_mcp_documentation_search,
+            required=wfb.requires_documentation_search,
+        )
 
         if score_ret_code != 0 and wfb.final_decision is True:
             wfb.final_decision = False
