@@ -564,3 +564,30 @@ By utilizing the **Kaggle Agent**, data scientists can craft innovative solution
       rdagent grade_summary --log-folder=<url_to_log>
 
     Here, <url_to_log> refers to the parent directory of the log folder generated during the run.
+
+Documentation lookup for pipeline errors
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Set ``DS_ENABLE_MCP_DOCUMENTATION_SEARCH=true`` to let the pipeline evaluator
+request documentation when it identifies an API error. This feature remains
+disabled by default. When enabled without existing Context7 configuration, it
+uses `Parallel Search MCP <https://docs.parallel.ai/integrations/mcp/search-mcp>`_
+for free web search and page fetching without an account or API key. Anonymous
+search uses Fast mode and has service rate limits. RD-Agent's configured chat
+model selects the tools and includes source URLs in the documentation reference
+attached to the error feedback.
+
+``DOCUMENTATION_SEARCH_PROVIDER`` accepts ``auto`` (the default), ``parallel``,
+or ``context7``. In ``auto``, any explicitly supplied ``CONTEXT7_`` setting
+preserves the Context7 agent, including its server URL, prompts and cache setting.
+To keep using its default local server, set
+``DOCUMENTATION_SEARCH_PROVIDER=context7``. Set it to ``parallel`` to explicitly
+choose Parallel even when Context7 is configured. A provider failure never switches
+to the other service.
+
+``DOCUMENTATION_SEARCH_TIMEOUT`` sets Parallel's initialization and read timeout
+in seconds (default: 120). Context7 retains ``CONTEXT7_TIMEOUT``. Disabling
+``DS_ENABLE_MCP_DOCUMENTATION_SEARCH`` prevents either service from being called.
+With Parallel enabled, error messages are sent to the configured chat model and
+the model's search queries and selected URLs are sent to Parallel; enable lookup
+only for workloads whose error details may be shared with those services.

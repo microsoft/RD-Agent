@@ -51,7 +51,7 @@ class DataScienceBasePropSetting(KaggleBasePropSetting):
 
     #### MCP documentation search integration
     enable_mcp_documentation_search: bool = False
-    """Enable MCP documentation search for error resolution. Requires MCP_ENABLED=true and MCP_CONTEXT7_ENABLED=true in environment."""
+    """Enable documentation lookup for error resolution. See DOCUMENTATION_SEARCH_PROVIDER to select a provider."""
 
     ### specific feature
 
