@@ -4,13 +4,12 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
-from sklearn.preprocessing import LabelEncoder
-
 from rdagent.utils.artifact_transport import (
     ARTIFACT_DUMP_CODE,
     load_artifact_bundle,
     load_result_artifact,
 )
+from sklearn.preprocessing import LabelEncoder
 
 
 @pytest.mark.offline
@@ -34,14 +33,40 @@ def test_safe_artifact_bundle_round_trip(tmp_path: Path) -> None:
 
 
 @pytest.mark.offline
-def test_artifact_bundle_rejects_file_path_escape(tmp_path: Path) -> None:
+@pytest.mark.parametrize("relative", [False, True])
+def test_result_loader_with_file_backed_bundle(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    relative: bool,
+) -> None:
+    namespace: dict = {}
+    exec(ARTIFACT_DUMP_CODE, namespace)  # noqa: S102
+    array = np.asarray([[1, 2], [3, 4]])
+    namespace["dump_safe_artifacts"]([array], tmp_path / "rdagent_artifacts")
+    monkeypatch.chdir(tmp_path)
+    manifest = Path("rdagent_artifacts/manifest.json")
+    restored = load_result_artifact(str(manifest if relative else manifest.resolve()))
+    assert len(restored) == 1
+    np.testing.assert_array_equal(restored[0], array)
+
+
+@pytest.mark.offline
+@pytest.mark.parametrize("relative", [False, True])
+def test_artifact_bundle_rejects_file_path_escape(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    relative: bool,
+) -> None:
     bundle = tmp_path / "rdagent_artifacts"
     bundle.mkdir()
     manifest = [{"type": "ndarray", "file": "../outside.npy"}]
     (bundle / "manifest.json").write_text(json.dumps(manifest))
+    monkeypatch.chdir(tmp_path)
 
     with pytest.raises(ValueError, match="escapes"):
-        load_artifact_bundle(bundle / "manifest.json")
+        load_artifact_bundle(Path("rdagent_artifacts/manifest.json") if relative else bundle / "manifest.json")
 
 
 @pytest.mark.offline

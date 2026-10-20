@@ -72,6 +72,7 @@ def dump_safe_artifacts(values, output_folder="rdagent_artifacts"):
 
 
 def _artifact_path(root: Path, file_name: str) -> Path:
+    root = root.resolve()
     path = (root / file_name).resolve()
     try:
         path.relative_to(root)
