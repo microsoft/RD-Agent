@@ -115,8 +115,8 @@ def env_check():
         chat_api_base = os.getenv("OPENAI_API_BASE")
         chat_model = os.getenv("CHAT_MODEL")
         embedding_model = os.getenv("EMBEDDING_MODEL")
-        embedding_api_key = chat_api_key
-        embedding_api_base = chat_api_base
+        embedding_api_key = os.getenv("LITELLM_PROXY_API_KEY") or chat_api_key
+        embedding_api_base = os.getenv("LITELLM_PROXY_API_BASE") or chat_api_base
     else:
         logger.error("No valid configuration was found, please check your .env file.")
 
