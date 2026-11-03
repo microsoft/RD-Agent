@@ -7,16 +7,20 @@
   "workspaceFolder": "/workspace/RD-Agent",
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspace/RD-Agent,type=bind,consistency=cached",
   "remoteUser": "root",
-  "settings": {
-    "terminal.integrated.shell.linux": "/bin/bash"
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      },
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-toolsai.jupyter"
+      ]
+    }
   },
   "mounts": [
     "source=/home/shared/RD-Agent/kaggle,target=/tmp/kaggle,type=bind,consistency=cached,readonly"
-  ],
-  "extensions": [
-    "ms-python.python",
-    "ms-python.vscode-pylance",
-    "ms-toolsai.jupyter"
   ],
   "runArgs": [
     "--init",

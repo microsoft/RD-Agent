@@ -11,14 +11,15 @@ Prerequisites(this is the reason why this dev container is not for public use):
 - The kaggle dataset is located at `/home/shared/RD-Agent/kaggle`
 
 1. Open the project and select "Open In DevContainer"
-2. Set up your Kaggle Key (do not share this; other internal URLs are hardcoded in the config files)
+2. Wait for the development setup to finish. If your environment skips the post-create command, run `make dev` from the repository root in the integrated terminal.
+3. Set up your Kaggle Key (do not share this; other internal URLs are hardcoded in the config files)
 
 ```bash
 export KAGGLE_USERNAME=
 export KAGGLE_KEY=
 ```
 
-3. Run: python rdagent/app/data_science/loop.py --competition nomad2018-predict-transparent-conductors
+4. Run: python rdagent/app/data_science/loop.py --competition nomad2018-predict-transparent-conductors
 
 
 # Additional Notes
