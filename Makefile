@@ -14,6 +14,7 @@ PYTHON_VERSION := $(shell echo $${PYTHON_VERSION:-$$(python -V 2>&1 | cut -d ' '
 
 # Determine the constraints file based on the Python version.
 CONSTRAINTS_FILE := constraints/$(PYTHON_VERSION).txt
+CONSTRAINTS_ARG := $(if $(wildcard $(CONSTRAINTS_FILE)),-c $(CONSTRAINTS_FILE))
 
 # Documentation target directory, will be adapted to specific folder for readthedocs.
 PUBLIC_DIR := $(shell [ "$$READTHEDOCS" = "True" ] && echo "$$READTHEDOCS_OUTPUT/html" || echo "public")
@@ -51,11 +52,11 @@ deepclean: clean
 
 # Install the package in editable mode.
 install:
-	$(PIPRUN) pip install -e . -c $(CONSTRAINTS_FILE)
+	$(PIPRUN) pip install -e . $(CONSTRAINTS_ARG)
 
 # Install the package in editable mode with specific optional dependencies.
 dev-%:
-	$(PIPRUN) pip install -e .[$*] -c $(CONSTRAINTS_FILE)
+	$(PIPRUN) pip install -e .[$*] $(CONSTRAINTS_ARG)
 
 # Prepare the development environment.
 # Build submodules.
@@ -68,7 +69,7 @@ init-qlib-env:
 
 dev:
 	$(PIPRUN) pip install -U pip setuptools wheel
-	$(PIPRUN) pip install -e .[docs,lint,package,test] -c $(CONSTRAINTS_FILE)
+	$(PIPRUN) pip install -e .[docs,lint,package,test] $(CONSTRAINTS_ARG)
 	$(PIPRUN) pip install -U kaggle
 	if [ "$(CI)" != "true" ] && command -v pre-commit > /dev/null 2>&1; then pre-commit install --hook-type pre-push; fi
 
