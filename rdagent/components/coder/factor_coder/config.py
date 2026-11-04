@@ -36,8 +36,25 @@ def get_factor_env(
     enable_cache: Optional[bool] = None,
 ) -> Env:
     conf = FactorCoSTEERSettings()
-    if hasattr(conf, "python_bin"):
+    if os.environ.get("CONDA_DEFAULT_ENV"):
         env = LocalEnv(conf=(CondaConf(conda_env_name=os.environ.get("CONDA_DEFAULT_ENV"))))
+    else:
+        # No conda on this host (upstream: hasattr(conf, "python_bin") is always
+        # True, so the conda branch crashed with CONDA_DEFAULT_ENV unset).
+        # Factor code itself runs via conf.python_bin resolved from the caller's
+        # PATH (factor.py), so derive bin_path from that same interpreter to keep
+        # runtime_info.py reporting the environment the factor code will see.
+        # If python_bin is not on PATH at all (e.g. no bare `python` binary),
+        # fall back to the interpreter running rdagent.
+        import shutil
+        import sys
+        from pathlib import Path as _Path
+
+        from rdagent.utils.env import LocalConf
+
+        resolved = shutil.which(conf.python_bin)
+        bin_dir = _Path(resolved).parent if resolved else _Path(sys.executable).parent
+        env = LocalEnv(conf=LocalConf(bin_path=str(bin_dir), default_entry="python main.py"))
     env.conf.extra_volumes = extra_volumes.copy()
     env.conf.running_timeout_period = running_timeout_period
     if enable_cache is not None:
