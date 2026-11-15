@@ -32,7 +32,7 @@ def ensure_ft_assets_exist(
                 logger.info(f"Preparing dataset '{dataset}' to {dataset_dir}")
                 prepare_dataset(dataset)
             except Exception as e:
-                raise Exception(f"Failed to prepare dataset '{dataset}' to {dataset_dir}: {e}") from e
+                raise ValueError(f"Failed to prepare dataset '{dataset}' to {dataset_dir}: {e}") from e
 
     # Ensure model exists if requested
     if check_model:
@@ -45,4 +45,4 @@ def ensure_ft_assets_exist(
                 logger.info(f"Downloading model '{model}' to {model_dir}")
                 download_model(model, out_dir_root=str(Path(FT_RD_SETTING.file_path) / "models"))
             except Exception as e:
-                raise Exception(f"Failed to download model '{model}' to {model_dir}: {e}. ") from e
+                raise ValueError(f"Failed to download model '{model}' to {model_dir}: {e}. ") from e
