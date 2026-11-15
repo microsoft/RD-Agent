@@ -55,7 +55,7 @@ class KGFBWorkspace(FBWorkspace):
         )
         if len(results) == 0:
             logger.error("Feature preprocess failed.")
-            raise Exception("Feature preprocess failed.")
+            raise ValueError("Feature preprocess failed.")
         else:
             X_train, X_valid, y_train, y_valid, X_test, others = results
             return X_train, X_valid, y_train, y_valid, X_test, *others
