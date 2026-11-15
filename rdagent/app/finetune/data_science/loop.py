@@ -26,11 +26,11 @@ def main(
         dotenv run -- python rdagent/app/finetune/data_science/loop.py --competition aerial-cactus-identification
     """
     if not competition:
-        raise Exception("Please specify competition name.")
+        raise ValueError("Please specify competition name.")
 
     model_folder = Path(DS_RD_SETTING.local_data_path) / competition / "prev_model"
     if not model_folder.exists():
-        raise Exception(f"Please put the model path to {model_folder}.")
+        raise ValueError(f"Please put the model path to {model_folder}.")
     update_settings(competition)
     rd_loop: DataScienceRDLoop = DataScienceRDLoop(DS_RD_SETTING)
     asyncio.run(rd_loop.run())
